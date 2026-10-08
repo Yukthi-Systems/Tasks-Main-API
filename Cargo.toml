@@ -1,0 +1,38 @@
+[package]
+name = "rust-api"
+version = "1.0.0"
+edition = "2024"
+
+
+[dependencies]
+tokio-postgres = { version = "0.7", features = ["with-uuid-1", "with-serde_json-1", "with-chrono-0_4"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+deadpool-postgres = { version = "0.14", features = ["serde"] }
+redis = { version = "1.7", features = ["tokio-comp"] }
+reqwest = { version = "0.13", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+moka = { version = "0.12", features = ["future"] }
+pg_row_derive = { path = "crates/pg_row_derive" }
+uuid = { version = "1.0", features = ["v4"] }
+postgres-native-tls = "0.5"
+tracing-appender = "0.2"
+actix-web = "4.15"
+actix-cors = "0.7"
+native-tls = "0.2"
+serde_json = "1.0"
+deadpool = "0.13"
+thiserror = "2"
+tracing = "0.1"
+bcrypt = "0.18"
+base64 = "0.23"
+tokio = "1"
+
+
+[profile.release]
+overflow-checks = true
+codegen-units = 1
+panic = "abort"
+opt-level = 3
+debug = false
+strip = true
+lto = "fat"

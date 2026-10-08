@@ -1,0 +1,113 @@
+use deadpool_postgres::{Manager, RecyclingMethod, Pool as PgPool};
+use native_tls::{Certificate, TlsConnector};
+use deadpool::{managed::Timeouts, Runtime};
+use postgres_native_tls::MakeTlsConnector;
+use crate::utils::initial::PgSettings;
+use tokio_postgres::Config;
+use std::time::Duration;
+use std::fs;
+
+
+pub async fn warm_pool(pool: &PgPool, pg: &PgSettings) {
+    // Warm pool to avoid first-hit latency
+    if !pg.warm_pool {
+        // Return early if warm pool is not enabled
+        return;
+    }
+
+    let warm_n = pg.max_pool_size.min(pg.warm_pool_size);
+    let mut ok = 0;
+
+    for _ in 0..warm_n {
+        match pool.get().await {
+            Ok(client) => {
+                let _ = client.simple_query("SELECT 1").await;
+                ok += 1;
+            }
+            Err(_) => {
+                tracing::warn!("Pool warm-up: failed to get a connection");
+            }
+        }
+    }
+
+    // Log the warm-up results
+    if ok == 0 {
+        tracing::warn!("Pool warm-up failed, all attempts to get a connection were unsuccessful: {warm_n}");
+    } else {
+        tracing::info!("Pool warm-up: {ok} conns warmed up out of {warm_n}. Success rate: {:.2}%", ok as f64 / warm_n as f64 * 100.0);
+    }
+}
+
+
+fn build_pg_config(settings: &PgSettings) -> Config {
+    // Initialize the Postgres configuration
+    let mut cfg: Config = settings.url.parse::<Config>().expect("invalid POSTGRES_DB_URL");
+    cfg.application_name("rust-api");
+    cfg.connect_timeout(Duration::from_secs(settings.conn_timeout));
+
+    cfg
+}
+
+
+fn tls_builder_from_settings(settings: &PgSettings) -> TlsConnector {
+    tracing::info!("Postgres SSL settings: accept_invalid_certs={}, accept_invalid_hostnames={}, root_cert_path={:?}",
+        settings.ssl_accept_invalid_certs,
+        settings.ssl_accept_invalid_hostnames,
+        settings.ssl_root_cert_path
+    );
+
+    // Build a TLS connector based on the provided settings
+    let mut tls_builder = TlsConnector::builder();
+    
+    // Configure the TLS connector to accept or reject invalid certificates and hostnames based on the settings
+    tls_builder.danger_accept_invalid_certs(settings.ssl_accept_invalid_certs);
+    tls_builder.danger_accept_invalid_hostnames(settings.ssl_accept_invalid_hostnames);
+
+    // If a root certificate path is provided, read the certificate and add it to the TLS connector
+    if let Some(cert_path) = &settings.ssl_root_cert_path {
+        let cert_data = fs::read(cert_path)
+            .unwrap_or_else(|err| panic!("failed to read PG_SSL_ROOT_CERT_PATH at {}: {}", cert_path, err));
+        let cert = Certificate::from_pem(&cert_data)
+            .unwrap_or_else(|err| panic!("invalid PEM certificate at PG_SSL_ROOT_CERT_PATH ({}): {}", cert_path, err));
+        tls_builder.add_root_certificate(cert);
+    }
+
+    // Build the TLS connector and return it, panicking if the build fails
+    tls_builder.build().expect("failed to build postgres TLS connector")
+}
+
+
+pub fn init_pg_pool(pg_settings: &PgSettings) -> PgPool {
+    // Get the Postgres base configuration
+    let cfg: Config = build_pg_config(pg_settings);
+
+    // Build a TLS connector so sslmode from the connection URL can be honored.
+    // This supports both SSL and non-SSL URLs while avoiding hardcoded NoTls.
+    let tls = MakeTlsConnector::new(tls_builder_from_settings(pg_settings));
+
+    let mgr = Manager::from_config(
+        cfg,
+        tls,
+        deadpool_postgres::ManagerConfig {
+            recycling_method: RecyclingMethod::Fast,
+        },
+    );
+
+    let pool = PgPool::builder(mgr)
+        .max_size(pg_settings.max_pool_size)
+        .runtime(Runtime::Tokio1)
+        .timeouts(Timeouts {
+            // how long to wait for an idle connection from the pool
+            wait: Some(Duration::from_secs(pg_settings.wait_timeout)),
+            // how long to spend creating a new connection (if pool can grow)
+            create: Some(Duration::from_secs(pg_settings.new_connection_timeout)),
+            // how long to spend recycling/validating a connection
+            recycle: Some(Duration::from_secs(pg_settings.recycle_timeout)),
+        })
+        .build()
+        .expect("failed to build pg pool");
+
+    tracing::info!("Postgres pool initialized (max_pool_size={})", pg_settings.max_pool_size);
+
+    pool
+}
