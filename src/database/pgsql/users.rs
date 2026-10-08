@@ -120,3 +120,21 @@ pub async fn delete_user_session(db_pool: &PgPool, refresh_token: &Uuid) -> PgRe
 
     Ok(result)
 }
+
+
+pub async fn replace_fcm_token(db_pool: &PgPool, user_id: &Uuid, new_fcm_token: &str) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            UPDATE sessions
+            SET fcm_token = $1
+            WHERE user_id = $2
+            "#,
+            &[&new_fcm_token, &user_id],
+        )
+        .await?;
+
+    Ok(result)
+}

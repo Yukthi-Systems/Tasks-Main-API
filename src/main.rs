@@ -1,5 +1,5 @@
+use routes::{health, sample_db, auth, user};
 use actix_web::web::scope as actix_scope;
-use routes::{health, sample_db, auth};
 use actix_web::middleware::from_fn;
 use actix_web::{App, HttpServer};
 use std::env::var as env_var;
@@ -31,7 +31,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(app_state.clone())
             .wrap(Cors::default()
                 .allowed_origin_fn(state::cors_allowed_origin_fn)
-                .allowed_methods(["GET", "POST", "DELETE"])
+                .allowed_methods(["GET", "POST", "PATCH", "DELETE"])
                 .supports_credentials()
                 .allow_any_header()
                 .max_age(420)
@@ -52,7 +52,7 @@ async fn main() -> std::io::Result<()> {
                 .service(
                     actix_scope("")
                     .wrap(from_fn(middleware::user_session::auth_check))
-                    // .service(user::update_fcm_token)
+                    .service(user::update_fcm_token)
                     .service(auth::user_logout)
                     .service(auth::get_session)
                 )

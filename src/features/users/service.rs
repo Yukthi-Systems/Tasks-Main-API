@@ -51,6 +51,7 @@ pub async fn create_new_user_session(state: &AppState, sso_session_id: &str, ref
 }
 
 
+/// Validate the user session by checking its existence in the PostgreSQL database and refreshing the Redis cache if valid
 pub async fn validate_session(state: &AppState, session_user: &SessionUser, access_token: String) -> ServiceResult<()> {
     let is_session_valid: bool = users::check_user_session(&state.pg_pool, &session_user.refresh_token, &session_user.sso_token, &session_user.user_id).await?;
     if !is_session_valid {
@@ -69,6 +70,7 @@ pub async fn validate_session(state: &AppState, session_user: &SessionUser, acce
 }
 
 
+/// Delete the user session from both PostgreSQL and Redis cache
 pub async fn delete_user_session(state: &AppState, refresh_token: &Uuid, access_token: String) -> ServiceResult<()> {
     // Delete the session from the PostgreSQL database
     let deleted_count = users::delete_user_session(&state.pg_pool, refresh_token).await?;
