@@ -1,4 +1,4 @@
-use crate::features::users::{SessionUser, create_new_user_session, validate_session, delete_user_session};
+use crate::features::users::{SessionUser, SessionTokensDto, create_new_user_session, validate_session, delete_user_session};
 use actix_web::{cookie::Cookie, delete, get, post, web, HttpResponse, HttpRequest};
 use crate::errors::ApiResponse;
 use crate::state::AppState;
@@ -95,7 +95,7 @@ pub async fn user_logout(request: HttpRequest, session_user: web::ReqData<Sessio
     let session_user = session_user.into_inner();
 
     // Delete the session from DB and any associated cache
-    delete_user_session(&state, &session_user, session_access_token).await?;
+    delete_user_session(&state, &session_user.refresh_token, session_access_token).await?;
 
     let mut cookie = Cookie::build("SSO-Session-ID", "")
         .path("/")
@@ -107,4 +107,49 @@ pub async fn user_logout(request: HttpRequest, session_user: web::ReqData<Sessio
     Ok(HttpResponse::Ok()
         .cookie(cookie)
         .body("Session deleted successfully!"))
+}
+
+
+#[post("/refresh")]
+pub async fn refresh_session(request: HttpRequest, user_tokens: web::Json<SessionTokensDto>, state: web::Data<AppState>) -> ApiResponse {
+    // Get the SSO Cookie from the request
+    let sso_session_id_cookie = request.cookie("SSO-Session-ID").map(|c| c.value().to_string());
+    if sso_session_id_cookie.is_none() {
+        return Ok(HttpResponse::BadRequest().body("SSO Session undefined, please login to SSO first"));
+    }
+    let sso_session_id_cookie: String = sso_session_id_cookie.unwrap();
+    let user_tokens = user_tokens.into_inner();
+
+    // Generate new access token for the session
+    let access_token = uuid::Uuid::new_v4();
+
+    // Create a new user session using the SSO session ID, refresh token, and access token
+    let session_user = create_new_user_session(
+        &state,
+        &sso_session_id_cookie,
+        user_tokens.refresh_token,
+        access_token
+    ).await?;
+
+    // Delete the session from DB and any associated cache
+    delete_user_session(&state, &user_tokens.refresh_token, user_tokens.access_token.to_string()).await?;
+
+    // Return a X-Sesson-Refresh-ID along with X-Sesson-Access-ID
+    Ok(HttpResponse::Ok()
+        .insert_header(("Cache-Control", "no-cache"))
+        .insert_header(("X-Session-Expiry", (60 * 60 * 3).to_string())) // Inform client about access token expiry time in seconds
+        .insert_header(("Access-Control-Expose-Headers", "X-Session-Expiry"))
+        .json(serde_json::json!({
+            "access_token": access_token,
+            "user_info": {
+                "email": session_user.email,
+                "user_id": session_user.user_id,
+                "domain_name": session_user.domain_name,
+                "first_name": session_user.first_name,
+                "last_name": session_user.last_name,
+                "organization_id": session_user.organization_id,
+                "organization_name": session_user.organization_name,
+                "is_external_sharing_enabled": session_user.is_external_sharing_enabled
+            }
+        })))
 }

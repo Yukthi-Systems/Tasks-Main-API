@@ -69,9 +69,14 @@ pub async fn validate_session(state: &AppState, session_user: &SessionUser, acce
 }
 
 
-pub async fn delete_user_session(state: &AppState, session_user: &SessionUser, access_token: String) -> ServiceResult<()> {
+pub async fn delete_user_session(state: &AppState, refresh_token: &Uuid, access_token: String) -> ServiceResult<()> {
     // Delete the session from the PostgreSQL database
-    users::delete_user_session(&state.pg_pool, &session_user.refresh_token).await?;
+    let deleted_count = users::delete_user_session(&state.pg_pool, refresh_token).await?;
+    tracing::info!("Deleted {} user session(s) from PostgreSQL", deleted_count);
+
+    if deleted_count == 0 {
+        tracing::warn!("No user session found for the given refresh token in PostgreSQL");
+    }
 
     // Delete the session from the Redis cache
     let redis_cache_key = format!("session:{}", access_token);

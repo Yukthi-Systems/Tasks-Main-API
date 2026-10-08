@@ -48,7 +48,7 @@ async fn main() -> std::io::Result<()> {
             .service(
                 actix_scope("/auth")
                 .service(auth::user_login)
-                // .service(auth::refresh_session)
+                .service(auth::refresh_session)
                 .service(
                     actix_scope("")
                     .wrap(from_fn(middleware::user_session::auth_check))

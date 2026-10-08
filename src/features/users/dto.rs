@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use uuid::Uuid;
 
 
@@ -15,4 +15,10 @@ pub struct SingleSignOnInfoDTO {
     pub organization_name: String,
 
     pub is_external_sharing_enabled: bool,
+}
+
+#[derive(Deserialize)]
+pub struct SessionTokensDto {
+    pub refresh_token: Uuid,
+    pub access_token: Uuid,
 }
