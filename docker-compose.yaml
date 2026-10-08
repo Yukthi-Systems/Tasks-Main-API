@@ -1,7 +1,7 @@
 services:
-  rust-api-template:
-    image: neko7nik/rust-api-template:latest
-    container_name: rust-api-template
+  tasks-main-api:
+    image: rjyspl/tasks-main-api:latest
+    container_name: tasks-main-api
 
     logging:
       driver: "json-file"
@@ -11,12 +11,11 @@ services:
 
     environment:
       # Logging and Runtime
-      - ENABLE_LOGGING=True
       - RUST_LOG=rust_api=TRACE
       - API_WORKERS_COUNT=4
 
       # PostgreSQL Database
-      - POSTGRES_DB_URL=postgres://user:password@db.nekonik.com:5432/nekonik
+      - POSTGRES_DB_URL=postgres://user:password@db.nekonik.com:5432/ytc
       - PG_CONN_TIMEOUT=<PG_CONN_TIMEOUT>
       - PG_POOL_MAX_SIZE=<PG_POOL_MAX_SIZE>
       - PG_POOL_WAIT_TIMEOUT=<PG_POOL_WAIT_TIMEOUT>
@@ -52,7 +51,7 @@ services:
       - /ca.crt:/ca.crt:ro
 
     networks:
-      - nik-api-network
+      - tasks-network
 
     ports:
       - "127.0.0.1:8686:8686"
@@ -61,5 +60,5 @@ services:
 
 
 networks:
-  nik-api-network:
+  tasks-network:
     external: true
