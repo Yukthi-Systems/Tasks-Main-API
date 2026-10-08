@@ -14,7 +14,7 @@ pub async fn create_note_handler(session_user: web::ReqData<SessionUser>, body: 
     let session_user = session_user.into_inner();
     let notes_body = body.into_inner(); 
 
-    tracing::debug!("{} is creating a new note.", session_user);
+    // tracing::debug!("{} is creating a new note.", session_user);
 
     add_new_notes(&state.pg_pool, vec![notes_body]).await?;
 
@@ -27,7 +27,7 @@ pub async fn list_notes_handler(session_user: web::ReqData<SessionUser>, state: 
     // Get SessionUser from request data
     let session_user = session_user.into_inner();
 
-    tracing::debug!("User '{}' is listing notes.", session_user.user_name);
+    // tracing::debug!("User '{}' is listing notes.", session_user.user_name);
 
     let notes = fetch_all_notes(&state.pg_pool).await?;
 

@@ -4,7 +4,7 @@ This folder contains project-specific reference material for the API template.
 
 ## Documents
 
-- [SQL DB Schema](schema.sql) — Database schema for the entire project and performance indexes
+- [SQL DB Schema](./DB/schema.sql) — Database schema for the entire project and performance indexes
 
 
 ## Quick entry points
