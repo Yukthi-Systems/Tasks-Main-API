@@ -60,7 +60,7 @@ jobs:
         run: |
           # Connect and restart the service
           ssh -o StrictHostKeyChecking=no root@$SERVER_IP << 'EOF'
-            cd /srv/tasks-main-api
+            cd /srv/tasks-main-api/main-api
             docker compose pull
             docker compose up -d
             docker ps
