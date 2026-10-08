@@ -14,10 +14,12 @@ pub async fn delete_old_sessions(pg_pool: PgPool) {
     loop {
         interval.tick().await;
 
+        tracing::info!("Running delete old sessions job");
+
         // Delete all expired sessions
         match delete_all_expired_sessions(&pg_pool).await {
             Ok(deleted_count) => tracing::info!("Deleted {} old sessions", deleted_count),
-            Err(err) => tracing::error!("Failed to delete old sessions: {:?}", err),
+            Err(err) => tracing::error!(%err, "Failed to delete old sessions"),
         }
     }
 }
