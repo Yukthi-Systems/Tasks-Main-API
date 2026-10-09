@@ -3,8 +3,6 @@
     - On user click have a sepeare view
     - All CRUD
 
-- Max 3 levels - I dont think its possible
-
 - Self can be assigned but not remove
 
 - Normal assignes - no permissions
@@ -24,7 +22,7 @@
     - Rejected 
     - Satlled / On-Hold
 
-- Start / Due date - Mandatory
+- Start / Due(End) date - Mandatory
 
 - Task Title, Task Description
 

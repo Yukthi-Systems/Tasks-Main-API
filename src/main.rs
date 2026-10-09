@@ -65,10 +65,11 @@ async fn main() -> std::io::Result<()> {
                 .service(user::get_user_info)
             )
             .service(
-                actix_scope("/sample_db")
+                actix_scope("/user")
                 .wrap(from_fn(middleware::user_session::auth_check))
-                .service(sample_db::create_note_handler)
-                .service(sample_db::list_notes_handler)
+                .service(user::email_dropdown_search)
+                .service(user::update_user_info)
+                .service(user::get_user_info)
             )
     })
     .bind(("0.0.0.0", 8686))?
