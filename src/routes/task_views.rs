@@ -1,5 +1,5 @@
 use crate::features::task_views::{self, CreateTaskViewDto, UpdateTaskViewDto};
-use actix_web::{HttpResponse, get, patch, post, web};
+use actix_web::{HttpResponse, delete, get, patch, post, web};
 use crate::features::users::SessionUser;
 use crate::errors::ApiResponse;
 use crate::state::AppState;
@@ -55,4 +55,17 @@ pub async fn update_task_view(session_user: web::ReqData<SessionUser>, data: web
     task_views::update_task_view(&state, &session_user.user_id, &new_info).await?;
     
     Ok(HttpResponse::Ok().body("Task view updated successfully"))
+}
+
+
+#[delete("/delete/{view_id}")]
+pub async fn delete_task_view(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, state: web::Data<AppState>) -> ApiResponse {
+    // Get SessionUser from request data
+    let session_user = session_user.into_inner();
+    let view_id = path.into_inner();
+
+    // Delete an existing task view using the provided view ID and the session user's ID
+    task_views::delete_task_view(&state, &session_user.user_id, view_id).await?;
+    
+    Ok(HttpResponse::Ok().body("Task view deleted successfully"))
 }

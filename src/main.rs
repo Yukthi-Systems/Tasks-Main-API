@@ -76,9 +76,9 @@ async fn main() -> std::io::Result<()> {
                 .wrap(from_fn(middleware::user_session::auth_check))
                 .service(task_views::create_task_view)
                 .service(task_views::update_task_view)
+                .service(task_views::delete_task_view)
                 .service(task_views::list_task_views)
                 .service(task_views::get_task_view)
-                // .service(task_views::delete_task_view)  // Only self-owned
             )    
             // .service(
             //     actix_scope("/shared")

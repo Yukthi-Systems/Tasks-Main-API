@@ -159,3 +159,20 @@ pub async fn update_task_view(db_pool: &PgPool, user_id: &Uuid, new_info: &Updat
 
     Ok(result)
 }
+
+
+pub async fn delete_task_view(db_pool: &PgPool, user_id: &Uuid, view_id: i64) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            DELETE FROM task_views
+            WHERE owner_id = $1 AND view_id = $2
+            "#,
+            &[user_id, &view_id],
+        )
+        .await?;
+
+    Ok(result)
+}

@@ -66,3 +66,18 @@ pub async fn update_task_view(state: &AppState, user_id: &Uuid, new_info: &Updat
 
     Ok(())
 }
+
+
+/// Delete an existing task view, self only possible
+pub async fn delete_task_view(state: &AppState, user_id: &Uuid, view_id: i64) -> ServiceResult<()> {
+    // Delete the task view in the database
+    let result = repository::delete_task_view(&state.pg_pool, user_id, view_id).await?;
+    if result == 0 {
+        return Err(ServiceError::NotFound("Task view not found or no changes made".into()));
+    }
+
+    // Invalidate the cache for all task view permissions related to this view ID
+    delete_redis_cache(&state.redis_cache, &format!("tvp:{}:*", view_id)).await?;
+
+    Ok(())
+}
