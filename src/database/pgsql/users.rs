@@ -1,4 +1,4 @@
-use crate::features::users::SessionUser;
+use crate::features::users::{SessionUser, UserInfoDbDto};
 use deadpool_postgres::Pool as PgPool;
 use crate::errors::PgResult;
 use uuid::Uuid;
@@ -137,4 +137,31 @@ pub async fn replace_fcm_token(db_pool: &PgPool, user_id: &Uuid, new_fcm_token: 
         .await?;
 
     Ok(result)
+}
+
+
+pub async fn get_user_info(db_pool: &PgPool, user_id: &Uuid) -> PgResult<Option<UserInfoDbDto>> {
+    let client = db_pool.get().await?;
+
+    let row = client
+        .query_opt(
+            r#"
+            SELECT 
+                user_id,
+                email,
+                domain,
+                organization_id,
+                organization_name,
+                private_info,
+                public_info,
+                is_external_sharing_enabled,
+                created_at
+            FROM users
+            WHERE user_id = $1
+            "#,
+            &[user_id],
+        )
+        .await?;
+
+    Ok(row.map(UserInfoDbDto::from))
 }
