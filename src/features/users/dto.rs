@@ -29,6 +29,16 @@ pub struct SessionTokensDto {
 
 
 #[derive(RowFrom, Serialize)]
+pub struct UserSearchInfoDbDto {
+    pub user_id: Uuid,
+    pub email: String,
+    pub domain: String,
+    pub public_info: serde_json::Value,
+    pub created_at: ChronoUtc,
+}
+
+
+#[derive(RowFrom, Serialize)]
 pub struct UserInfoDbDto {
     pub user_id: Uuid,
     pub email: String,

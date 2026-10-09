@@ -1,4 +1,4 @@
-use crate::features::users::{SessionUser, UserInfoDbDto};
+use crate::features::users::{SessionUser, UserInfoDbDto, UserSearchInfoDbDto};
 use deadpool_postgres::Pool as PgPool;
 use crate::errors::PgResult;
 use uuid::Uuid;
@@ -200,4 +200,29 @@ pub async fn update_private_info(db_pool: &PgPool, user_id: &Uuid, new_info: &se
         .await?;
 
     Ok(result)
+}
+
+
+pub async fn search_email(db_pool: &PgPool, organization_id: &Uuid, search_query: &str) -> PgResult<Vec<UserSearchInfoDbDto>> {
+    let client = db_pool.get().await?;
+
+    let rows = client
+        .query(
+            r#"
+            SELECT 
+                user_id,
+                email,
+                domain,
+                public_info,
+                created_at
+            FROM users
+            WHERE organization_id = $1
+              AND email ILIKE $2
+            LIMIT 10
+            "#,
+            &[organization_id, &format!("%{}%", search_query)],
+        )
+        .await?;
+
+    Ok(UserSearchInfoDbDto::from_rows(rows))
 }
