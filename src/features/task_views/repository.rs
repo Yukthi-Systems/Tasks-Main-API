@@ -1,7 +1,7 @@
 use super::dto::{CreateTaskViewDto, TaskViewDbDto, UpdateTaskViewDto};
 use deadpool_postgres::Pool as PgPool;
 use super::model::TaskViewPermission;
-use crate::errors::PgResult;
+use crate::{errors::PgResult, features::task_views::CreateSharedTaskViewDto};
 use uuid::Uuid;
 
 
@@ -171,6 +171,76 @@ pub async fn delete_task_view(db_pool: &PgPool, user_id: &Uuid, view_id: i64) ->
             WHERE owner_id = $1 AND view_id = $2
             "#,
             &[user_id, &view_id],
+        )
+        .await?;
+
+    Ok(result)
+}
+
+
+pub async fn create_shared_task_view(db_pool: &PgPool, organization_id: &Uuid, user_id: &Uuid, new_info: &CreateSharedTaskViewDto) -> PgResult<u64> {
+    if new_info.user_id == *user_id {
+        // The user cannot create a shared task view for themselves
+        return Ok(0);
+    }
+
+    let client = db_pool.get().await?;
+
+    // Check if the user is valid for the given organization before creating the shared task view
+    let is_valid_row = client
+        .query_one(
+            r#"
+            SELECT EXISTS(
+                SELECT 1
+                FROM users
+                WHERE organization_id = $1 AND user_id = $2
+            )
+            "#,
+            &[organization_id, user_id],
+        )
+        .await?;
+
+    let is_valid: bool = is_valid_row.get(0);
+    if !is_valid {
+        // The user is not valid for the given organization, so we return 0 to indicate failure
+        return Ok(0);
+    }
+
+    // Check if the user owns the task view before creating the shared task view
+    let owns_view_row = client
+        .query_one(
+            r#"
+            SELECT EXISTS(
+                SELECT 1
+                FROM task_views
+                WHERE owner_id = $1 AND view_id = $2
+            )
+            "#,
+            &[user_id, &new_info.view_id],
+        )
+        .await?;
+
+    let owns_view: bool = owns_view_row.get(0);
+    if !owns_view {
+        // The user does not own the task view, so we return 0 to indicate failure
+        return Ok(0);
+    }
+
+    let result = client
+        .execute(
+            r#"
+            INSERT INTO shared_views (view_id, user_id, share_notes, ui_info, can_create, can_edit, can_delete)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            "#,
+            &[
+                &new_info.view_id,
+                &new_info.user_id,
+                &new_info.share_notes,
+                &new_info.ui_info,
+                &new_info.can_create,
+                &new_info.can_edit,
+                &new_info.can_delete,
+            ],
         )
         .await?;
 

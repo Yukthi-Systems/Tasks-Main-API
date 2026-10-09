@@ -80,14 +80,14 @@ async fn main() -> std::io::Result<()> {
                 .service(task_views::list_task_views)
                 .service(task_views::get_task_view)
             )    
-            // .service(
-            //     actix_scope("/shared")
-            //     .wrap(from_fn(middleware::user_session::auth_check))
-            //     .service(task_views::create_shared_task_view)   // Only self-owned
-            //     .service(task_views::delete_shared_task_view)   // Only self-owned
-            //     .service(task_views::update_shared_task_view)   // Only self-owned
-            //     .service(task_views::list_shared_task_views)    // Shared by others to the user
-            // )
+            .service(
+                actix_scope("/shared")
+                .wrap(from_fn(middleware::user_session::auth_check))
+                .service(task_views::create_shared_task_view)
+                // .service(task_views::delete_shared_task_view)   // Only self-owned
+                // .service(task_views::update_shared_task_view)   // Only self-owned
+                // .service(task_views::list_shared_task_views)    // Shared by others to the user
+            )
             // .service(
             //     actix_scope("/tasks")   // Should give ViewID every time
             //     .wrap(from_fn(middleware::user_session::auth_check))

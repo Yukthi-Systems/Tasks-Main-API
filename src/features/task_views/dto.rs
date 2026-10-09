@@ -24,6 +24,20 @@ pub struct CreateTaskViewDto {
 
 
 #[derive(Deserialize)]
+pub struct CreateSharedTaskViewDto {
+    pub view_id: i64,
+    pub user_id: Uuid,  // Shared with this user
+
+    pub share_notes: String,
+    pub ui_info: serde_json::Value, // UI-related information for the shared user
+
+    pub can_create: bool,
+    pub can_edit: bool,
+    pub can_delete: bool,
+}
+
+
+#[derive(Deserialize)]
 pub struct UpdateTaskViewDto {
     pub view_id: i64,
     pub view_name: String,

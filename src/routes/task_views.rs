@@ -1,4 +1,4 @@
-use crate::features::task_views::{self, CreateTaskViewDto, UpdateTaskViewDto};
+use crate::features::task_views::{self, CreateSharedTaskViewDto, CreateTaskViewDto, UpdateTaskViewDto};
 use actix_web::{HttpResponse, delete, get, patch, post, web};
 use crate::features::users::SessionUser;
 use crate::errors::ApiResponse;
@@ -68,4 +68,20 @@ pub async fn delete_task_view(session_user: web::ReqData<SessionUser>, path: web
     task_views::delete_task_view(&state, &session_user.user_id, view_id).await?;
     
     Ok(HttpResponse::Ok().body("Task view deleted successfully"))
+}
+
+
+#[post("/create")]
+pub async fn create_shared_task_view(session_user: web::ReqData<SessionUser>, data: web::Json<CreateSharedTaskViewDto>, state: web::Data<AppState>) -> ApiResponse {
+    // Get SessionUser from request data
+    let session_user = session_user.into_inner();
+    let new_info = data.into_inner();
+
+    // Create a new shared task view using the provided information and the session user's ID
+    let result = task_views::create_shared_task_view(&state.pg_pool, &session_user.organization_id, &session_user.user_id, &new_info).await?;
+    if result == 0 {
+        return Ok(HttpResponse::BadRequest().body("Failed to create shared task view"));
+    }
+
+    Ok(HttpResponse::Created().body("Shared task view created successfully"))
 }
