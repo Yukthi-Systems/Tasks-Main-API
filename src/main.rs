@@ -1,6 +1,6 @@
-use routes::{health, sample_db, auth, user};
 use actix_web::web::scope as actix_scope;
 use actix_web::middleware::from_fn;
+use routes::{health, auth, user};
 use actix_web::{App, HttpServer};
 use std::env::var as env_var;
 use actix_cors::Cors;
