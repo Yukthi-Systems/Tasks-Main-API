@@ -165,3 +165,39 @@ pub async fn get_user_info(db_pool: &PgPool, user_id: &Uuid) -> PgResult<Option<
 
     Ok(row.map(UserInfoDbDto::from))
 }
+
+
+pub async fn update_public_info(db_pool: &PgPool, user_id: &Uuid, new_info: &serde_json::Value) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            UPDATE users
+            SET public_info = $1
+            WHERE user_id = $2
+            "#,
+            &[new_info, user_id],
+        )
+        .await?;
+
+    Ok(result)
+}
+
+
+pub async fn update_private_info(db_pool: &PgPool, user_id: &Uuid, new_info: &serde_json::Value) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            UPDATE users
+            SET private_info = $1
+            WHERE user_id = $2
+            "#,
+            &[new_info, user_id],
+        )
+        .await?;
+
+    Ok(result)
+}

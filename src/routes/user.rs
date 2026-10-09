@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, get, patch, web};
+use actix_web::{HttpResponse, get, patch, post, web};
 use crate::features::users::SessionUser;
 use crate::errors::ApiResponse;
 use crate::database::users;
@@ -47,4 +47,27 @@ pub async fn get_user_info(session_user: web::ReqData<SessionUser>, path: web::P
     } else {
         return Ok(HttpResponse::Ok().json(user_info.into_public()));
     }
+}
+
+
+#[post("/info/{is_public_info}")]
+pub async fn update_user_info(session_user: web::ReqData<SessionUser>, path: web::Path<bool>, data: web::Json<serde_json::Value>, state: web::Data<AppState>) -> ApiResponse {
+    // Get SessionUser from request data
+    let session_user = session_user.into_inner();
+    let is_public_info = path.into_inner();
+    let new_info = data.into_inner();
+
+    // Update the user information based on whether it is public or private
+    let result = if is_public_info {
+        users::update_public_info(&state.pg_pool, &session_user.user_id, &new_info).await?
+    } else {
+        users::update_private_info(&state.pg_pool, &session_user.user_id, &new_info).await?
+    };
+
+    // Check if the update affected any rows
+    if result == 0 {
+        return Ok(HttpResponse::NotFound().body("User info update failed"));
+    }
+
+    Ok(HttpResponse::Ok().body("User info updated successfully"))
 }

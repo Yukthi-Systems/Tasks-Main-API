@@ -61,7 +61,7 @@ async fn main() -> std::io::Result<()> {
                 actix_scope("/user")
                 .wrap(from_fn(middleware::user_session::auth_check))
                 // .service(user::email_dropdown_search)
-                // .service(user::update_user_info)
+                .service(user::update_user_info)
                 .service(user::get_user_info)
             )
             .service(
