@@ -1,7 +1,7 @@
 use crate::cache::{set_redis_cache, delete_redis_cache, get_redis_cache};
+use super::dto::{TaskViewDbDto, UpdateTaskViewDto};
 use crate::errors::{ServiceResult, ServiceError};
 use super::model::TaskViewPermission;
-use super::dto::{TaskViewDbDto};
 use crate::state::AppState;
 use super::repository;
 use uuid::Uuid;
@@ -10,8 +10,8 @@ use uuid::Uuid;
 
 /// Fetch the task view permission for the given user and view ID (Cache first, then database)
 async fn get_task_view_permission(state: &AppState, user_id: &Uuid, view_id: i64) -> ServiceResult<TaskViewPermission> {
-    let cache_key = format!("tvp:{}:{}", user_id, view_id);
-    
+    let cache_key = format!("tvp:{}:{}", view_id, user_id);
+
     // Check if the Redis has the task view permission cached
     let cached_permission: Option<TaskViewPermission> = get_redis_cache(&state.redis_cache, &cache_key).await?;
     if let Some(permission) = cached_permission {
@@ -50,4 +50,19 @@ pub async fn get_task_view_by_user(state: &AppState, user_id: &Uuid, view_id: i6
     }
 
     Ok(view.unwrap())
+}
+
+
+/// Update an existing task view, self only possible
+pub async fn update_task_view(state: &AppState, user_id: &Uuid, new_info: &UpdateTaskViewDto) -> ServiceResult<()> {
+    // Update the task view in the database
+    let result = repository::update_task_view(&state.pg_pool, user_id, new_info).await?;
+    if result == 0 {
+        return Err(ServiceError::NotFound("Task view not found or no changes made".into()));
+    }
+
+    // Invalidate the cache for all task view permissions related to this view ID
+    delete_redis_cache(&state.redis_cache, &format!("tvp:{}:*", new_info.view_id)).await?;
+
+    Ok(())
 }

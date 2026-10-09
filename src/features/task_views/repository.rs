@@ -1,4 +1,4 @@
-use super::dto::{CreateTaskViewDto, TaskViewDbDto};
+use super::dto::{CreateTaskViewDto, TaskViewDbDto, UpdateTaskViewDto};
 use deadpool_postgres::Pool as PgPool;
 use super::model::TaskViewPermission;
 use crate::errors::PgResult;
@@ -121,4 +121,41 @@ pub async fn check_task_view_ownership(db_pool: &PgPool, user_id: &Uuid, view_id
         .await?;
 
     Ok(row.map(TaskViewPermission::from))
+}
+
+
+pub async fn update_task_view(db_pool: &PgPool, user_id: &Uuid, new_info: &UpdateTaskViewDto) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            UPDATE task_views
+            SET
+                view_name = $1,
+                description = $2,
+                ui_info = $3,
+                status_filter = $4,
+                show_recurring = $5,
+                show_comments = $6,
+                show_subtasks = $7,
+                show_assigned = $8
+            WHERE owner_id = $9 AND view_id = $10
+            "#,
+            &[
+                &new_info.view_name,
+                &new_info.description,
+                &new_info.ui_info,
+                &new_info.status_filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
+                &new_info.show_recurring,
+                &new_info.show_comments,
+                &new_info.show_subtasks,
+                &new_info.show_assigned,
+                &user_id,
+                &new_info.view_id,
+            ],
+        )
+        .await?;
+
+    Ok(result)
 }

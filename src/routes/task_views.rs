@@ -1,5 +1,5 @@
-use crate::features::task_views::{self, CreateTaskViewDto};
-use actix_web::{HttpResponse, get, post, web};
+use crate::features::task_views::{self, CreateTaskViewDto, UpdateTaskViewDto};
+use actix_web::{HttpResponse, get, patch, post, web};
 use crate::features::users::SessionUser;
 use crate::errors::ApiResponse;
 use crate::state::AppState;
@@ -42,4 +42,17 @@ pub async fn get_task_view(session_user: web::ReqData<SessionUser>, path: web::P
     let task_view = task_views::get_task_view_by_user(&state, &session_user.user_id, view_id).await?;
 
     Ok(HttpResponse::Ok().json(task_view))
+}
+
+
+#[patch("/update")]
+pub async fn update_task_view(session_user: web::ReqData<SessionUser>, data: web::Json<UpdateTaskViewDto>, state: web::Data<AppState>) -> ApiResponse {
+    // Get SessionUser from request data
+    let session_user = session_user.into_inner();
+    let new_info = data.into_inner();
+
+    // Update an existing task view using the provided information and the session user's ID
+    task_views::update_task_view(&state, &session_user.user_id, &new_info).await?;
+    
+    Ok(HttpResponse::Ok().body("Task view updated successfully"))
 }
