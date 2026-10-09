@@ -3,8 +3,8 @@ use crate::errors::{ServiceResult, ServiceError};
 use super::dto::SingleSignOnInfoDTO;
 use crate::state::API_SETTINGS;
 use super::model::SessionUser;
-use crate::database::users;
 use crate::state::AppState;
+use super::repository;
 use uuid::Uuid;
 
 
@@ -41,7 +41,7 @@ pub async fn create_new_user_session(state: &AppState, sso_session_id: &str, ref
     );
 
     // Create a PgSQL session entry (Will have Refresh Token and User Info) - Long lived (like 30 days or so)
-    users::create_user_session(&state.pg_pool, &session_user).await?;
+    repository::create_user_session(&state.pg_pool, &session_user).await?;
 
     // Create a Redis cache entry (Will have Access Token linked with Refresh Token and User Info too) - Short lived (like 3 Hrs or so)
     let redis_cache_key = format!("session:{}", access_token);
@@ -53,7 +53,7 @@ pub async fn create_new_user_session(state: &AppState, sso_session_id: &str, ref
 
 /// Validate the user session by checking its existence in the PostgreSQL database and refreshing the Redis cache if valid
 pub async fn validate_session(state: &AppState, session_user: &SessionUser, access_token: String) -> ServiceResult<()> {
-    let is_session_valid: bool = users::check_user_session(&state.pg_pool, &session_user.refresh_token, &session_user.sso_token, &session_user.user_id).await?;
+    let is_session_valid: bool = repository::check_user_session(&state.pg_pool, &session_user.refresh_token, &session_user.sso_token, &session_user.user_id).await?;
     if !is_session_valid {
         // Clear the Redis cache for this session as it is no longer valid
         let redis_cache_key = format!("session:{}", access_token);
@@ -73,7 +73,7 @@ pub async fn validate_session(state: &AppState, session_user: &SessionUser, acce
 /// Delete the user session from both PostgreSQL and Redis cache
 pub async fn delete_user_session(state: &AppState, refresh_token: &Uuid, access_token: String) -> ServiceResult<()> {
     // Delete the session from the PostgreSQL database
-    let deleted_count = users::delete_user_session(&state.pg_pool, refresh_token).await?;
+    let deleted_count = repository::delete_user_session(&state.pg_pool, refresh_token).await?;
     tracing::info!("Deleted {} user session(s) from PostgreSQL", deleted_count);
 
     if deleted_count == 0 {

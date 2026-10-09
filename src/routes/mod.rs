@@ -1,3 +1,4 @@
-pub mod auth;
-pub mod user;
+pub mod task_views;
 pub mod health;
+pub mod user;
+pub mod auth;

@@ -1,7 +1,6 @@
 use actix_web::{HttpResponse, get, patch, post, web};
-use crate::features::users::SessionUser;
+use crate::features::users::{self,SessionUser};
 use crate::errors::ApiResponse;
-use crate::database::users;
 use crate::state::AppState;
 use uuid::Uuid;
 

@@ -26,6 +26,7 @@ impl ResponseError for ServiceError {
             ServiceError::BadRequest(_) => StatusCode::BAD_REQUEST,
             ServiceError::NotFound(_) => StatusCode::NOT_FOUND,
             ServiceError::Unauthorized(_) => StatusCode::UNAUTHORIZED,
+            ServiceError::Forbidden(_) => StatusCode::FORBIDDEN,
             ServiceError::Unprocessable(_) => StatusCode::UNPROCESSABLE_ENTITY,
             ServiceError::PreconditionFailed(_) => StatusCode::PRECONDITION_FAILED,
             ServiceError::Gone(_) => StatusCode::GONE,
@@ -46,6 +47,7 @@ impl ResponseError for ServiceError {
         let message = match self {
             ServiceError::BadRequest(message)
             | ServiceError::NotFound(message)
+            | ServiceError::Forbidden(message)
             | ServiceError::Unauthorized(message)
             | ServiceError::Unprocessable(message)
             | ServiceError::PreconditionFailed(message)

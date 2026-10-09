@@ -1,6 +1,6 @@
+use routes::{health, auth, user, task_views};
 use actix_web::web::scope as actix_scope;
 use actix_web::middleware::from_fn;
-use routes::{health, auth, user};
 use actix_web::{App, HttpServer};
 use std::env::var as env_var;
 use actix_cors::Cors;
@@ -71,15 +71,15 @@ async fn main() -> std::io::Result<()> {
                 .service(user::update_user_info)
                 .service(user::get_user_info)
             )
-            // .service(
-            //     actix_scope("/views")
-            //     .wrap(from_fn(middleware::user_session::auth_check))
-            //     .service(task_views::create_task_view)  // Only self-owned
-            //     .service(task_views::list_task_views)   // Only self-owned
-            //     .service(task_views::get_task_view) // Including shared view fetch
-            //     .service(task_views::update_task_view)  // Only self-owned
-            //     .service(task_views::delete_task_view)  // Only self-owned
-            // )    
+            .service(
+                actix_scope("/views")
+                .wrap(from_fn(middleware::user_session::auth_check))
+                .service(task_views::create_task_view)
+                .service(task_views::list_task_views)
+                .service(task_views::get_task_view) // Including shared view fetch
+                // .service(task_views::update_task_view)  // Only self-owned
+                // .service(task_views::delete_task_view)  // Only self-owned
+            )    
             // .service(
             //     actix_scope("/shared")
             //     .wrap(from_fn(middleware::user_session::auth_check))

@@ -1,4 +1,4 @@
-use crate::database::users::delete_all_expired_sessions;
+use crate::features::users::delete_all_expired_sessions;
 use deadpool_postgres::Pool as PgPool;
 use std::time::Duration;
 

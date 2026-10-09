@@ -43,6 +43,9 @@ pub enum ServiceError {
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
 
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
+
     #[error("Gone: {0}")]
     Gone(String),
 }
