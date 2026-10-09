@@ -71,6 +71,69 @@ async fn main() -> std::io::Result<()> {
                 .service(user::update_user_info)
                 .service(user::get_user_info)
             )
+            // .service(
+            //     actix_scope("/views")
+            //     .wrap(from_fn(middleware::user_session::auth_check))
+            //     .service(task_views::create_task_view)  // Only self-owned
+            //     .service(task_views::list_task_views)   // Only self-owned
+            //     .service(task_views::get_task_view) // Including shared view fetch
+            //     .service(task_views::update_task_view)  // Only self-owned
+            //     .service(task_views::delete_task_view)  // Only self-owned
+            // )    
+            // .service(
+            //     actix_scope("/shared")
+            //     .wrap(from_fn(middleware::user_session::auth_check))
+            //     .service(task_views::create_shared_task_view)   // Only self-owned
+            //     .service(task_views::delete_shared_task_view)   // Only self-owned
+            //     .service(task_views::update_shared_task_view)   // Only self-owned
+            //     .service(task_views::list_shared_task_views)    // Shared by others to the user
+            // )
+            // .service(
+            //     actix_scope("/tasks")   // Should give ViewID every time
+            //     .wrap(from_fn(middleware::user_session::auth_check))
+            //     .service(task_events::create_task)  // Any assignee can create a sub-task ; Any can_create can create a top-level task under that user ; Self can do anything under owned by them tasks
+            //     .service(task_events::list_tasks)  // List tasks based on the view (Also Sub-Tasks)
+            //     .service(task_events::get_task) // Including shared task fetch / Sub-Task fetch
+            //     .service(task_events::update_task)  // Only self-owned
+            //     .service(task_events::delete_task)  // Only self-owned
+            // )
+            // .service(
+            //     actix_scope("/recurring")   // Should give ViewID every time
+            //     .wrap(from_fn(middleware::user_session::auth_check))
+            //     .service(task_events::create_recurring_task)
+            //     .service(task_events::list_recurring_tasks)  // List recurring tasks based on the view (There are no Sub-Tasks)
+            //     .service(task_events::get_recurring_task) // Including shared task fetch (if the view permits)
+            //     .service(task_events::update_recurring_task)  // Only self-owned
+            //     .service(task_events::delete_recurring_task)  // Only self-owned
+            // )
+            // .service(
+            //     actix_scope("/alerts")   // Should give AlertID every time
+            //     .wrap(from_fn(middleware::user_session::auth_check))
+            //     // This is only for self-owned alerts not shared at all
+            //     .service(task_alerts::create_alert)
+            //     .service(task_alerts::list_alerts)  // List alerts based on the view
+            //     .service(task_alerts::list_all_alerts)  // List all alerts regardless of the view
+            //     .service(task_alerts::get_alert) // Including shared alert fetch
+            //     .service(task_alerts::update_alert)  // Only self-owned
+            //     .service(task_alerts::delete_alert)  // Only self-owned
+            // )
+            // .service(
+            //     actix_scope("/comments")   // Should give ViewID + TaskID every time (Should have show_comments = True)
+            //     .wrap(from_fn(middleware::user_session::auth_check))
+            //     .service(task_comments::create_comment) // Only self-owned
+            //     .service(task_comments::list_comments)  // List comments based on the view (Anyone)
+            //     .service(task_comments::get_comment)    // Fetch just one comment (same as list struct use)
+            //     .service(task_comments::update_comment)  // Only self-owned
+            //     .service(task_comments::delete_comment)  // Only self-owned
+            //     .service(task_comments::react_to_comment)  // Any user can react to any visible comment
+            // )
+            // .service(
+            //     actix_scope("/assignees")   // Should give ViewID + TaskID every time
+            //     .wrap(from_fn(middleware::user_session::auth_check))
+            //     .service(task_assignees::assign_user)  // Any-one can assign a user to a task (If they are the owner or one of the assignees)
+            //     .service(task_assignees::remove_user)  // Only self-owned task can remove an assignee (Self can not exit)
+            //     .service(task_assignees::list_assignees)  // List all assignees for a task
+            // )
     })
     .bind(("0.0.0.0", 8686))?
     .workers(env_var("API_WORKERS_COUNT").unwrap_or("4".to_string()).parse().unwrap())
