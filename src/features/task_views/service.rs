@@ -8,8 +8,8 @@ use uuid::Uuid;
 
 
 
-/// Fetch the task view permission for the given user and view ID (Cache first, then database)
-async fn get_task_view_permission(state: &AppState, user_id: &Uuid, view_id: i64) -> ServiceResult<TaskViewPermission> {
+/// Fetch the task view permission for the given user and view ID (Cache first, then database) [Internal Use]
+pub async fn get_task_view_permission(state: &AppState, user_id: &Uuid, view_id: i64) -> ServiceResult<TaskViewPermission> {
     let cache_key = format!("tvp:{}:{}", view_id, user_id); // TVP = Task View Permission
 
     // Check if the Redis has the task view permission cached

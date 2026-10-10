@@ -1,4 +1,4 @@
-use routes::{health, auth, user, task_views};
+use routes::{health, auth, user, task_views, task_events};
 use actix_web::web::scope as actix_scope;
 use actix_web::middleware::from_fn;
 use actix_web::{App, HttpServer};
@@ -91,15 +91,15 @@ async fn main() -> std::io::Result<()> {
             //     .service(task_events::update_task)  // Only self-owned
             //     .service(task_events::delete_task)  // Only self-owned
             // )
-            // .service(
-            //     actix_scope("/recurring")   // Should give ViewID every time
-            //     .wrap(from_fn(middleware::user_session::auth_check))
-            //     .service(task_events::create_recurring_task)
-            //     .service(task_events::list_recurring_tasks)  // List recurring tasks based on the view (There are no Sub-Tasks)
-            //     .service(task_events::get_recurring_task) // Including shared task fetch (if the view permits)
-            //     .service(task_events::update_recurring_task)  // Only self-owned
-            //     .service(task_events::delete_recurring_task)  // Only self-owned
-            // )
+            .service(
+                actix_scope("/recurring")   // Should give ViewID every time
+                .wrap(from_fn(middleware::user_session::auth_check))
+                .service(task_events::create_recurring_task)
+                .service(task_events::list_recurring_tasks)
+                // .service(task_events::get_recurring_task) // Including shared task fetch (if the view permits)
+                // .service(task_events::update_recurring_task)  // Only self-owned
+                // .service(task_events::delete_recurring_task)  // Only self-owned
+            )
             // .service(
             //     actix_scope("/alerts")   // Should give AlertID every time
             //     .wrap(from_fn(middleware::user_session::auth_check))

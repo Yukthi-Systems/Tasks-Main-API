@@ -1,0 +1,45 @@
+use crate::features::task_views::get_task_view_permission;
+use crate::features::task_events::CreateRecurringTaskDto;
+use crate::errors::{ServiceResult, ServiceError};
+use super::model::RecurringTask;
+use crate::state::AppState;
+use super::repository;
+use uuid::Uuid;
+
+
+
+/// Create a new recurring task for the session user and the specified view ID
+pub async fn create_recurring_task(state: &AppState, session_user_id: &Uuid, task_info: &CreateRecurringTaskDto, view_id: i64) -> ServiceResult<()> {
+    // Get the task view permission for the user and view ID
+    let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
+
+    // See if the user has the necessary permissions to create a recurring task
+    if !task_view_permission.can_create || !task_view_permission.show_recurring {
+        return Err(ServiceError::Forbidden("You do not have permission to create a recurring task in this view".into()));
+    }
+
+    // Create the recurring task in the database
+    let result = repository::create_recurring_task(&state.pg_pool, task_info, &task_view_permission.owner_id).await?;
+    if result == 0 {
+        return Err(ServiceError::NotFound("Failed to create recurring task".into()));
+    }
+
+    Ok(())
+}
+
+
+/// List all recurring tasks for the session user and the specified view ID
+pub async fn list_recurring_tasks(state: &AppState, session_user_id: &Uuid, view_id: i64) -> ServiceResult<Vec<RecurringTask>> {
+    // Get the task view permission for the user and view ID
+    let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
+
+    // See if the user has the necessary permissions to view recurring tasks
+    if !task_view_permission.show_recurring {
+        return Err(ServiceError::Forbidden("You do not have permission to view recurring tasks in this view".into()));
+    }
+
+    // List the recurring tasks from the database
+    let tasks = repository::list_recurring_tasks(&state.pg_pool, &task_view_permission.owner_id).await?;
+
+    Ok(tasks)
+}
