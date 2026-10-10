@@ -1,5 +1,5 @@
+use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto};
 use crate::features::task_views::get_task_view_permission;
-use crate::features::task_events::CreateRecurringTaskDto;
 use crate::errors::{ServiceResult, ServiceError};
 use super::model::RecurringTask;
 use crate::state::AppState;
@@ -62,4 +62,44 @@ pub async fn get_one_recurring_task(state: &AppState, session_user_id: &Uuid, vi
     }
 
     Ok(task.unwrap())
+}
+
+
+/// Update a recurring task for the session user and the specified view ID and task ID
+pub async fn update_recurring_task(state: &AppState, session_user_id: &Uuid, view_id: i64, new_info: &UpdateRecurringTaskDto) -> ServiceResult<()> {
+    // Get the task view permission for the user and view ID
+    let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
+
+    // See if the user has the necessary permissions to update recurring tasks
+    if !task_view_permission.show_recurring || !task_view_permission.can_edit {
+        return Err(ServiceError::Forbidden("You do not have permission to update recurring tasks in this view".into()));
+    }
+
+    // Update the recurring task in the database
+    let result = repository::update_recurring_task(&state.pg_pool, &task_view_permission.owner_id, new_info).await?;
+    if result == 0 {
+        return Err(ServiceError::NotFound("Recurring task not found".into()));
+    }
+
+    Ok(())
+}
+
+
+/// Delete a recurring task for the session user and the specified view ID and task ID
+pub async fn delete_recurring_task(state: &AppState, session_user_id: &Uuid, view_id: i64, recurring_task_id: i64) -> ServiceResult<()> {
+    // Get the task view permission for the user and view ID
+    let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
+
+    // See if the user has the necessary permissions to delete recurring tasks
+    if !task_view_permission.show_recurring || !task_view_permission.can_delete {
+        return Err(ServiceError::Forbidden("You do not have permission to delete recurring tasks in this view".into()));
+    }
+
+    // Delete the recurring task from the database
+    let result = repository::delete_recurring_task(&state.pg_pool, &task_view_permission.owner_id, recurring_task_id).await?;
+    if result == 0 {
+        return Err(ServiceError::NotFound("Recurring task not found".into()));
+    }
+
+    Ok(())
 }

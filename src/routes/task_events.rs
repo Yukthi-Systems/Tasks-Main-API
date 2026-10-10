@@ -1,4 +1,4 @@
-use crate::features::task_events::{self, CreateRecurringTaskDto};
+use crate::features::task_events::{self, CreateRecurringTaskDto, UpdateRecurringTaskDto};
 use actix_web::{HttpResponse, delete, get, patch, post, web};
 use crate::features::users::SessionUser;
 use crate::errors::ApiResponse;
@@ -44,4 +44,29 @@ pub async fn get_recurring_task(session_user: web::ReqData<SessionUser>, path: w
     let task = task_events::get_one_recurring_task(&state, &session_user.user_id, view_id, recurring_task_id).await?;
 
     Ok(HttpResponse::Ok().json(task))
+}
+
+
+#[patch("/update/{view_id}")]
+pub async fn update_recurring_task(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, data: web::Json<UpdateRecurringTaskDto>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let task_info = data.into_inner();
+    let view_id = path.into_inner();
+
+    // Can update recurring tasks if show_recurring, can_update is true
+    task_events::update_recurring_task(&state, &session_user.user_id, view_id, &task_info).await?;
+
+    Ok(HttpResponse::Ok().body("Recurring task updated successfully"))
+}
+
+
+#[delete("/delete/{view_id}/{recurring_task_id}")]
+pub async fn delete_recurring_task(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, i64)>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let (view_id, recurring_task_id) = path.into_inner();
+
+    // Can delete recurring tasks if show_recurring, can_delete is true
+    task_events::delete_recurring_task(&state, &session_user.user_id, view_id, recurring_task_id).await?;
+
+    Ok(HttpResponse::Ok().body("Recurring task deleted successfully"))
 }

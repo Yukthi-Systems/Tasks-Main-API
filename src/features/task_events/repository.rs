@@ -1,4 +1,4 @@
-use super::dto::CreateRecurringTaskDto;
+use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto};
 use deadpool_postgres::Pool as PgPool;
 use super::model::RecurringTask;
 use crate::errors::PgResult;
@@ -68,4 +68,49 @@ pub async fn get_one_recurring_task(db_pool: &PgPool, owner_id: &Uuid, recurring
         .await?;
 
     Ok(row.map(RecurringTask::from))
+}
+
+
+pub async fn update_recurring_task(db_pool: &PgPool, owner_id: &Uuid, new_info: &UpdateRecurringTaskDto) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            UPDATE recurring_tasks
+            SET title = $1,
+                description = $2,
+                details = $3,
+                rrule = $4
+            WHERE owner_id = $5 AND recurring_task_id = $6
+            "#,
+            &[
+                &new_info.title,
+                &new_info.description,
+                &new_info.details,
+                &new_info.rrule,
+                owner_id,
+                &new_info.recurring_task_id,
+            ],
+        )
+        .await?;
+
+    Ok(result)
+}
+
+
+pub async fn delete_recurring_task(db_pool: &PgPool, owner_id: &Uuid, recurring_task_id: i64) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            DELETE FROM recurring_tasks
+            WHERE owner_id = $1 AND recurring_task_id = $2
+            "#,
+            &[owner_id, &recurring_task_id],
+        )
+        .await?;
+
+    Ok(result)
 }

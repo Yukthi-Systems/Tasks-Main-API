@@ -4,5 +4,11 @@ mod service;
 mod repository;
 
 
-pub use service::{create_recurring_task, list_recurring_tasks, get_one_recurring_task};
-pub use dto::CreateRecurringTaskDto;
+pub use dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto};
+pub use service::{
+    get_one_recurring_task,
+    create_recurring_task,
+    update_recurring_task,
+    delete_recurring_task,
+    list_recurring_tasks
+};

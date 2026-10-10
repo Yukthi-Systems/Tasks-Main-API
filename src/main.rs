@@ -92,13 +92,13 @@ async fn main() -> std::io::Result<()> {
             //     .service(task_events::delete_task)  // Only self-owned
             // )
             .service(
-                actix_scope("/recurring")   // Should give ViewID every time
+                actix_scope("/recurring")
                 .wrap(from_fn(middleware::user_session::auth_check))
                 .service(task_events::create_recurring_task)
+                .service(task_events::update_recurring_task)
+                .service(task_events::delete_recurring_task)
                 .service(task_events::list_recurring_tasks)
                 .service(task_events::get_recurring_task)
-                // .service(task_events::update_recurring_task)  // Only self-owned
-                // .service(task_events::delete_recurring_task)  // Only self-owned
             )
             // .service(
             //     actix_scope("/alerts")   // Should give AlertID every time
