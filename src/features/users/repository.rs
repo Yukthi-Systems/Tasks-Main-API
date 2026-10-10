@@ -170,7 +170,6 @@ pub async fn get_user_info(db_pool: &PgPool, user_id: &Uuid) -> PgResult<Option<
                 organization_name,
                 private_info,
                 public_info,
-                is_external_sharing_enabled,
                 created_at
             FROM users
             WHERE user_id = $1
