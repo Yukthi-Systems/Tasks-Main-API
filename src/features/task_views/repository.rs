@@ -102,7 +102,8 @@ pub async fn check_task_view_ownership(db_pool: &PgPool, user_id: &Uuid, view_id
                 -- Owners have all permissions
                 (tv.owner_id = $1 OR COALESCE(sv.can_create, FALSE)) AS can_create,
                 (tv.owner_id = $1 OR COALESCE(sv.can_edit, FALSE)) AS can_edit,
-                (tv.owner_id = $1 OR COALESCE(sv.can_delete, FALSE)) AS can_delete
+                (tv.owner_id = $1 OR COALESCE(sv.can_delete, FALSE)) AS can_delete,
+                (tv.owner_id = $1) AS is_owner
 
             FROM task_views tv
             LEFT JOIN shared_views sv
@@ -241,6 +242,27 @@ pub async fn create_shared_task_view(db_pool: &PgPool, organization_id: &Uuid, u
                 &new_info.can_edit,
                 &new_info.can_delete,
             ],
+        )
+        .await?;
+
+    Ok(result)
+}
+
+
+pub async fn delete_shared_task_view(db_pool: &PgPool, owner_id: &Uuid, shared_view_id: i64, user_id: &Uuid) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            DELETE FROM shared_views AS sv
+            USING task_views AS tv
+            WHERE sv.view_id = tv.view_id
+                AND tv.owner_id = $1
+                AND sv.view_id = $2
+                AND sv.user_id = $3
+            "#,
+            &[owner_id, &shared_view_id, user_id],
         )
         .await?;
 

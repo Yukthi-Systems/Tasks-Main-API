@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 /// Fetch the task view permission for the given user and view ID (Cache first, then database)
 async fn get_task_view_permission(state: &AppState, user_id: &Uuid, view_id: i64) -> ServiceResult<TaskViewPermission> {
-    let cache_key = format!("tvp:{}:{}", view_id, user_id);
+    let cache_key = format!("tvp:{}:{}", view_id, user_id); // TVP = Task View Permission
 
     // Check if the Redis has the task view permission cached
     let cached_permission: Option<TaskViewPermission> = get_redis_cache(&state.redis_cache, &cache_key).await?;
@@ -78,6 +78,27 @@ pub async fn delete_task_view(state: &AppState, user_id: &Uuid, view_id: i64) ->
 
     // Invalidate the cache for all task view permissions related to this view ID
     delete_redis_cache(&state.redis_cache, &format!("tvp:{}:*", view_id)).await?;
+
+    Ok(())
+}
+
+
+/// Delete an existing shared task view, self only possible (Shared with others remove them from the view)
+pub async fn remove_user_from_shared_task_view(state: &AppState, session_user_id: &Uuid, shared_view_id: i64, user_id: &Uuid) -> ServiceResult<()> {
+    // Make sure the session user is the owner of the shared task view
+    let shared_view_permission = get_task_view_permission(&state, session_user_id, shared_view_id).await?;
+    if !shared_view_permission.is_owner {
+        return Err(ServiceError::Forbidden("Only the owner can remove users from the shared task view".into()));
+    }
+
+    // Delete the shared task view in the database
+    let result = repository::delete_shared_task_view(&state.pg_pool, session_user_id, shared_view_id, user_id).await?;
+    if result == 0 {
+        return Err(ServiceError::NotFound("Shared task view not found or no changes made".into()));
+    }
+
+    // Invalidate the cache for all task view permissions related to this view ID
+    delete_redis_cache(&state.redis_cache, &format!("tvp:{}:{}", shared_view_id, user_id)).await?;
 
     Ok(())
 }

@@ -26,6 +26,7 @@ pub struct TaskViewPermission {
     pub can_create: bool,
     pub can_edit: bool,
     pub can_delete: bool,
+    pub is_owner: bool,
 }
 
 

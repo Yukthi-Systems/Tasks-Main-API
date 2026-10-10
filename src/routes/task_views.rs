@@ -85,3 +85,16 @@ pub async fn create_shared_task_view(session_user: web::ReqData<SessionUser>, da
 
     Ok(HttpResponse::Created().body("Shared task view created successfully"))
 }
+
+
+#[delete("/delete/{shared_view_id}/{user_id}")]
+pub async fn delete_shared_task_view(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, uuid::Uuid)>, state: web::Data<AppState>) -> ApiResponse {
+    // Get SessionUser from request data
+    let session_user = session_user.into_inner();
+    let (shared_view_id, user_id) = path.into_inner();
+
+    // Delete an existing shared task view using the provided shared view ID and the session user's ID
+    task_views::remove_user_from_shared_task_view(&state, &session_user.user_id, shared_view_id, &user_id).await?;
+
+    Ok(HttpResponse::Ok().body("Shared task view deleted successfully"))
+}
