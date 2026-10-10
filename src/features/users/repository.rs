@@ -7,6 +7,22 @@ use uuid::Uuid;
 pub async fn create_user_session(db_pool: &PgPool, user_session: &SessionUser) -> PgResult<()> {
     let client = db_pool.get().await?;
 
+    // If the refresh token already exists, do nothing and return early
+    let existing_session = client
+        .query_opt(
+            r#"
+            SELECT 1
+            FROM sessions
+            WHERE refresh_token = $1
+            "#,
+            &[&user_session.refresh_token],
+        )
+        .await?;
+
+    if existing_session.is_some() {
+        return Ok(());
+    }
+
     // Create a user if not exists, then create the session with the provided details
     client
         .execute(
