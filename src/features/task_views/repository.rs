@@ -24,8 +24,11 @@ pub async fn create_task_view(db_pool: &PgPool, user_id: &Uuid, new_info: &Creat
                 show_subtasks,
                 show_assigned
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            ON CONFLICT (owner_id, view_name) DO NOTHING
+            VALUES (
+                $1, $2, $3, $4,
+                ARRAY(SELECT unnest($5::text[])::task_status),
+                $6, $7, $8, $9
+            )
             "#,
         &[
             &user_id,
