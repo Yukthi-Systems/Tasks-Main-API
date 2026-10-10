@@ -268,3 +268,36 @@ pub async fn delete_shared_task_view(db_pool: &PgPool, owner_id: &Uuid, shared_v
 
     Ok(result)
 }
+
+
+pub async fn update_shared_task_view(db_pool: &PgPool, owner_id: &Uuid, new_info: &CreateSharedTaskViewDto) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            UPDATE shared_views AS sv
+            SET share_notes = $3,
+                ui_info = $4,
+                can_create = $5,
+                can_edit = $6,
+                can_delete = $7
+            FROM task_views AS tv
+            WHERE sv.view_id = tv.view_id
+                AND tv.owner_id = $1
+                AND sv.view_id = $2
+            "#,
+            &[
+                owner_id,
+                &new_info.view_id,
+                &new_info.share_notes,
+                &new_info.ui_info,
+                &new_info.can_create,
+                &new_info.can_edit,
+                &new_info.can_delete,
+            ],
+        )
+        .await?;
+
+    Ok(result)
+}

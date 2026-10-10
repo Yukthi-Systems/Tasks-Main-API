@@ -98,3 +98,19 @@ pub async fn delete_shared_task_view(session_user: web::ReqData<SessionUser>, pa
 
     Ok(HttpResponse::Ok().body("Shared task view deleted successfully"))
 }
+
+
+#[patch("/update")]
+pub async fn update_shared_task_view(session_user: web::ReqData<SessionUser>, data: web::Json<CreateSharedTaskViewDto>, state: web::Data<AppState>) -> ApiResponse {
+    // Get SessionUser from request data
+    let session_user = session_user.into_inner();
+    let new_info = data.into_inner();
+
+    // Update an existing shared task view using the provided information and the session user's ID
+    let result = task_views::update_shared_task_view(&state, &session_user.user_id, &new_info).await?;
+    if result == 0 {
+        return Ok(HttpResponse::BadRequest().body("Failed to update shared task view"));
+    }
+
+    Ok(HttpResponse::Ok().body("Shared task view updated successfully"))
+}

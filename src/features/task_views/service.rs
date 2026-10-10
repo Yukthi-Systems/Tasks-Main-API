@@ -1,5 +1,5 @@
+use super::dto::{TaskViewDbDto, UpdateTaskViewDto, CreateSharedTaskViewDto};
 use crate::cache::{set_redis_cache, delete_redis_cache, get_redis_cache};
-use super::dto::{TaskViewDbDto, UpdateTaskViewDto};
 use crate::errors::{ServiceResult, ServiceError};
 use super::model::TaskViewPermission;
 use crate::state::AppState;
@@ -101,4 +101,22 @@ pub async fn remove_user_from_shared_task_view(state: &AppState, session_user_id
     delete_redis_cache(&state.redis_cache, &format!("tvp:{}:{}", shared_view_id, user_id)).await?;
 
     Ok(())
+}
+
+
+/// Update an existing shared task view, self only possible (Only the owner can update an share)
+pub async fn update_shared_task_view(state: &AppState, session_user_id: &Uuid, new_info: &CreateSharedTaskViewDto) -> ServiceResult<u64> {
+    // Make sure the session user is the owner of the shared task view
+    let shared_view_permission = get_task_view_permission(&state, session_user_id, new_info.view_id).await?;
+    if !shared_view_permission.is_owner {
+        return Err(ServiceError::Forbidden("Only the owner can update the shared task view".into()));
+    }
+
+    // Update the shared task view in the database
+    let result = repository::update_shared_task_view(&state.pg_pool, session_user_id, new_info).await?;
+
+    // Invalidate the cache for all task view permissions related to this view ID
+    delete_redis_cache(&state.redis_cache, &format!("tvp:{}:*", new_info.view_id)).await?;
+
+    Ok(result)
 }
