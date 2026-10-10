@@ -145,7 +145,7 @@ pub async fn create_task(state: &AppState, session_user_id: &Uuid, view_id: i64,
     // Check if the parent task exists if a parent_task_id is provided
     // If a parent task ID is provided, check if the parent task exists and is valid for the user
     if let Some(parent_task_id) = new_task.parent_task_id {
-        let _ = parent_task_owner_or_assignee_check(&state, &session_user_id, parent_task_id).await?;
+        let _is_owner: bool = parent_task_owner_or_assignee_check(&state, &session_user_id, parent_task_id).await?;
         // Either way we can proceed with creating the new task since the parent task exists and the user has the necessary permissions
     }
 
