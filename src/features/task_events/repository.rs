@@ -1,4 +1,5 @@
 use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto};
+use crate::features::task_views::TaskTag;
 use deadpool_postgres::Pool as PgPool;
 use super::model::RecurringTask;
 use crate::errors::PgResult;
@@ -17,9 +18,10 @@ pub async fn create_recurring_task(db_pool: &PgPool, new_info: &CreateRecurringT
                 title,
                 description,
                 details,
-                rrule
+                rrule,
+                task_tag
             )
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4, $5, $6)
             "#,
             &[
                 owner_id,
@@ -27,6 +29,7 @@ pub async fn create_recurring_task(db_pool: &PgPool, new_info: &CreateRecurringT
                 &new_info.description,
                 &new_info.details,
                 &new_info.rrule,
+                &new_info.task_tag.as_str(),
             ],
         )
         .await?;
@@ -35,17 +38,17 @@ pub async fn create_recurring_task(db_pool: &PgPool, new_info: &CreateRecurringT
 }
 
 
-pub async fn list_recurring_tasks(db_pool: &PgPool, owner_id: &Uuid) -> PgResult<Vec<RecurringTask>> {
+pub async fn list_recurring_tasks(db_pool: &PgPool, owner_id: &Uuid, task_tags: &[TaskTag]) -> PgResult<Vec<RecurringTask>> {
     let client = db_pool.get().await?;
 
     let rows = client
         .query(
             r#"
-            SELECT recurring_task_id, owner_id, title, description, details, rrule, created_at
+            SELECT recurring_task_id, owner_id, title, description, details, rrule, task_tag, created_at
             FROM recurring_tasks
-            WHERE owner_id = $1
+            WHERE owner_id = $1 AND task_tag = ANY($2)
             "#,
-            &[owner_id],
+            &[owner_id, &task_tags.iter().map(|t| t.as_str()).collect::<Vec<_>>()],
         )
         .await?;
 
@@ -53,17 +56,17 @@ pub async fn list_recurring_tasks(db_pool: &PgPool, owner_id: &Uuid) -> PgResult
 }
 
 
-pub async fn get_one_recurring_task(db_pool: &PgPool, owner_id: &Uuid, recurring_task_id: i64) -> PgResult<Option<RecurringTask>> {
+pub async fn get_one_recurring_task(db_pool: &PgPool, owner_id: &Uuid, recurring_task_id: i64, task_tag: TaskTag) -> PgResult<Option<RecurringTask>> {
     let client = db_pool.get().await?;
 
     let row = client
         .query_opt(
             r#"
-            SELECT recurring_task_id, owner_id, title, description, details, rrule, created_at
+            SELECT recurring_task_id, owner_id, title, description, details, rrule, task_tag, created_at
             FROM recurring_tasks
-            WHERE owner_id = $1 AND recurring_task_id = $2
+            WHERE owner_id = $1 AND recurring_task_id = $2 AND task_tag = $3
             "#,
-            &[owner_id, &recurring_task_id],
+            &[owner_id, &recurring_task_id, &task_tag.as_str()],
         )
         .await?;
 
@@ -81,14 +84,16 @@ pub async fn update_recurring_task(db_pool: &PgPool, owner_id: &Uuid, new_info: 
             SET title = $1,
                 description = $2,
                 details = $3,
-                rrule = $4
-            WHERE owner_id = $5 AND recurring_task_id = $6
+                rrule = $4,
+                task_tag = $5
+            WHERE owner_id = $6 AND recurring_task_id = $7
             "#,
             &[
                 &new_info.title,
                 &new_info.description,
                 &new_info.details,
                 &new_info.rrule,
+                &new_info.task_tag.as_str(),
                 owner_id,
                 &new_info.recurring_task_id,
             ],
@@ -99,16 +104,16 @@ pub async fn update_recurring_task(db_pool: &PgPool, owner_id: &Uuid, new_info: 
 }
 
 
-pub async fn delete_recurring_task(db_pool: &PgPool, owner_id: &Uuid, recurring_task_id: i64) -> PgResult<u64> {
+pub async fn delete_recurring_task(db_pool: &PgPool, owner_id: &Uuid, recurring_task_id: i64, task_tag: TaskTag) -> PgResult<u64> {
     let client = db_pool.get().await?;
 
     let result = client
         .execute(
             r#"
             DELETE FROM recurring_tasks
-            WHERE owner_id = $1 AND recurring_task_id = $2
+            WHERE owner_id = $1 AND recurring_task_id = $2 AND task_tag = $3
             "#,
-            &[owner_id, &recurring_task_id],
+            &[owner_id, &recurring_task_id, &task_tag.as_str()],
         )
         .await?;
 

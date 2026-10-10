@@ -1,10 +1,7 @@
+use super::model::{TaskStatus, TaskTag};
 use serde::{Deserialize, Serialize};
-use super::model::TaskStatus;
 use pg_row_derive::RowFrom;
 use uuid::Uuid;
-
-
-type ChronoUtc = chrono::DateTime<chrono::Utc>;
 
 
 
@@ -15,6 +12,7 @@ pub struct CreateTaskViewDto {
 
     pub ui_info: serde_json::Value,
     pub status_filter: Vec<TaskStatus>,
+    pub task_tag_filter: Vec<TaskTag>,
 
     pub show_recurring: bool,
     pub show_comments: bool,
@@ -45,6 +43,7 @@ pub struct UpdateTaskViewDto {
 
     pub ui_info: serde_json::Value,
     pub status_filter: Vec<TaskStatus>,
+    pub task_tag_filter: Vec<TaskTag>,
 
     pub show_recurring: bool,
     pub show_comments: bool,
@@ -63,6 +62,7 @@ pub struct TaskViewDbDto {
 
     pub ui_info: serde_json::Value,
     pub status_filter: Vec<String>,
+    pub task_tag_filter: Vec<String>,
 
     pub show_recurring: bool,
     pub show_comments: bool,

@@ -16,12 +16,24 @@ pub enum TaskStatus {
 }
 
 
+#[derive(Deserialize)]
+pub enum TaskTag {
+    Work,       // Work-related tasks
+    Important,  // High significance
+    Urgent,     // Requires prompt attention
+    Optional,   // Can be skipped
+    Personal,   // Personal tasks
+    Other,      // Anything else
+}
+
+
 #[derive(RowFrom, Serialize, Deserialize)]
 pub struct TaskViewPermission {
     pub view_id: i64,
     pub owner_id: Uuid,
 
     pub status_filter: Vec<String>,
+    pub task_tag_filter: Vec<String>,
 
     pub show_recurring: bool,
     pub show_comments: bool,
@@ -65,15 +77,35 @@ impl TaskStatus {
             TaskStatus::OnHold => "ON_HOLD",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Option<TaskStatus> {
-        match s {
-            "PENDING" => Some(TaskStatus::Pending),
-            "IN_PROGRESS" => Some(TaskStatus::InProgress),
-            "COMPLETED" => Some(TaskStatus::Completed),
-            "CANCELLED" => Some(TaskStatus::Cancelled),
-            "ON_HOLD" => Some(TaskStatus::OnHold),
-            _ => None,
+
+impl TaskTag {
+    pub fn as_str(&self) -> &str {
+        match self {
+            TaskTag::Work => "WORK",
+            TaskTag::Important => "IMPORTANT",
+            TaskTag::Urgent => "URGENT",
+            TaskTag::Optional => "OPTIONAL",
+            TaskTag::Personal => "PERSONAL",
+            TaskTag::Other => "OTHER",
         }
+    }
+}
+
+
+impl TaskViewPermission {
+    pub fn check_status(&self, status: &TaskStatus) -> bool {
+        self.status_filter.contains(&status.as_str().to_string())
+    }
+
+    /// Check if the task view permission allows the specified task tag
+    pub fn check_tag(&self, tag: &TaskTag) -> bool {
+        self.task_tag_filter.contains(&tag.as_str().to_string())
+    }
+
+    /// Check if all the specified task tags are allowed by the task view permission
+    pub fn check_all_tags(&self, tags: &[TaskTag]) -> bool {
+        tags.iter().all(|tag| self.check_tag(tag))
     }
 }

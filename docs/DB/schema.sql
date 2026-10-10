@@ -42,6 +42,17 @@ CREATE TYPE task_status AS ENUM (
 );
 
 
+-- Enum of tags for tasks
+CREATE TYPE task_tag AS ENUM (
+    'WORK',         -- Work-related tasks
+    'IMPORTANT',    -- High significance
+    'URGENT',       -- Requires prompt attention
+    'OPTIONAL',     -- Can be skipped
+    'PERSONAL',     -- Personal tasks
+    'OTHER'         -- Anything else
+);
+
+
 -- Tasks
 CREATE TABLE tasks (
     task_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -53,6 +64,7 @@ CREATE TABLE tasks (
     details JSONB NOT NULL, -- UI colours, etc.
 
     task_status task_status NOT NULL DEFAULT 'PENDING',
+    task_tag task_tag NOT NULL,
 
     start_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     end_at TIMESTAMPTZ NOT NULL,
@@ -97,6 +109,8 @@ CREATE TABLE recurring_tasks (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     details JSONB NOT NULL, -- UI colours, etc.
+
+    task_tag task_tag NOT NULL,
 
     -- RFC 5545 RRULE
     rrule TEXT NOT NULL, -- Stores the recurrence rule in RFC 5545 format
@@ -150,6 +164,7 @@ CREATE TABLE task_views (
 
     -- Filter by info
     status_filter task_status[] NULL,               -- Filter tasks by their status (Any-one)
+    task_tag_filter task_tag[] NULL,                -- Filter tasks by their tags (Any-one)
     show_recurring BOOLEAN NOT NULL DEFAULT FALSE,  -- Show recurring tasks or not
     show_comments BOOLEAN NOT NULL DEFAULT FALSE,   -- Show comments for any tasks
     show_subtasks BOOLEAN NOT NULL DEFAULT FALSE,   -- Just list top-level tasks

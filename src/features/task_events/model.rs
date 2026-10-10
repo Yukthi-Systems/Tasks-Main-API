@@ -16,6 +16,7 @@ pub struct RecurringTask {
     pub details: serde_json::Value,
 
     pub rrule: String,  // Recurrence rule in RFC 5545 format (e.g., "FREQ=WEEKLY;BYDAY=MO,WE,FR")
+    pub task_tag: String,
 
     pub created_at: ChronoUtc,
 }
