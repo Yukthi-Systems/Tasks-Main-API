@@ -1,4 +1,4 @@
-use crate::features::task_events::{self, CreateRecurringTaskDto, UpdateRecurringTaskDto};
+use crate::features::task_events::{self, CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto};
 use actix_web::{HttpResponse, delete, get, patch, post, web};
 use crate::features::task_views::TaskTag;
 use crate::features::users::SessionUser;
@@ -71,4 +71,19 @@ pub async fn delete_recurring_task(session_user: web::ReqData<SessionUser>, path
     task_events::delete_recurring_task(&state, &session_user.user_id, view_id, recurring_task_id, task_tag).await?;
 
     Ok(HttpResponse::Ok().body("Recurring task deleted successfully"))
+}
+
+
+#[post("/create/{view_id}")]
+pub async fn create_task(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, data: web::Json<CreateTaskDto>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let view_id = path.into_inner();
+    let task_info = data.into_inner();
+
+    // Any assignee can create a sub-task
+    // Any can_create can create a top-level task under that user
+    // Self can do anything under owned by them tasks
+    task_events::create_task(&state, &session_user.user_id, view_id, &task_info).await?;
+
+    Ok(HttpResponse::Created().body("Task created successfully"))
 }

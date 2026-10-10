@@ -82,15 +82,15 @@ async fn main() -> std::io::Result<()> {
                 .service(task_views::list_all_shared_users)
                 .service(task_views::get_shared_task_view)
             )
-            // .service(
-            //     actix_scope("/tasks")   // Should give ViewID every time
-            //     .wrap(from_fn(middleware::user_session::auth_check))
-            //     .service(task_events::create_task)  // Any assignee can create a sub-task ; Any can_create can create a top-level task under that user ; Self can do anything under owned by them tasks
-            //     .service(task_events::list_tasks)  // List tasks based on the view (Also Sub-Tasks)
-            //     .service(task_events::get_task) // Including shared task fetch / Sub-Task fetch
-            //     .service(task_events::update_task)  // Only self-owned
-            //     .service(task_events::delete_task)  // Only self-owned
-            // )
+            .service(
+                actix_scope("/tasks")   // Should give ViewID every time
+                .wrap(from_fn(middleware::user_session::auth_check))
+                .service(task_events::create_task)
+                // .service(task_events::list_tasks)  // List tasks based on the view (Also Sub-Tasks)
+                // .service(task_events::get_task) // Including shared task fetch / Sub-Task fetch
+                // .service(task_events::update_task)  // Only self-owned
+                // .service(task_events::delete_task)  // Only self-owned
+            )
             .service(
                 actix_scope("/recurring")
                 .wrap(from_fn(middleware::user_session::auth_check))

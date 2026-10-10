@@ -6,7 +6,7 @@ mod repository;
 
 pub use repository::{create_task_view, list_task_views, create_shared_task_view, list_my_shared_views};
 pub use dto::{CreateTaskViewDto, UpdateTaskViewDto, CreateSharedTaskViewDto};
-pub use model::TaskTag;
+pub use model::{TaskTag, TaskStatus};
 pub use service::{
     remove_user_from_shared_task_view,
     get_shared_task_view_user_info,
