@@ -65,13 +65,6 @@ async fn main() -> std::io::Result<()> {
                 .service(user::get_user_info)
             )
             .service(
-                actix_scope("/user")
-                .wrap(from_fn(middleware::user_session::auth_check))
-                .service(user::email_dropdown_search)
-                .service(user::update_user_info)
-                .service(user::get_user_info)
-            )
-            .service(
                 actix_scope("/views")
                 .wrap(from_fn(middleware::user_session::auth_check))
                 .service(task_views::create_task_view)
@@ -86,7 +79,7 @@ async fn main() -> std::io::Result<()> {
                 .service(task_views::create_shared_task_view)
                 .service(task_views::delete_shared_task_view)
                 .service(task_views::update_shared_task_view)
-                // .service(task_views::list_shared_task_views)    // Shared by others to the user
+                // .service(task_views::list_shared_task_views)  // 2 Types: Shared with me & Shared by me on the given viewID (should be owned by the user)
             )
             // .service(
             //     actix_scope("/tasks")   // Should give ViewID every time

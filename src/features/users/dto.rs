@@ -50,7 +50,6 @@ pub struct UserInfoDbDto {
     pub private_info: serde_json::Value,
     pub public_info: serde_json::Value,
 
-    pub is_external_sharing_enabled: bool,
     pub created_at: ChronoUtc,
 }
 
@@ -65,7 +64,6 @@ pub struct UserInfoPublicDto {
     pub organization_name: String,
 
     pub public_info: serde_json::Value,
-    pub is_external_sharing_enabled: bool,
     pub created_at: ChronoUtc,
 }
 
@@ -82,7 +80,6 @@ impl From<UserInfoDbDto> for UserInfoPublicDto {
             organization_id: user_info.organization_id,
             organization_name: user_info.organization_name,
             public_info: user_info.public_info,
-            is_external_sharing_enabled: user_info.is_external_sharing_enabled,
             created_at: user_info.created_at,
         }
     }
