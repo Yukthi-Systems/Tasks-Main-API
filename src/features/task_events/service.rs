@@ -43,3 +43,23 @@ pub async fn list_recurring_tasks(state: &AppState, session_user_id: &Uuid, view
 
     Ok(tasks)
 }
+
+
+/// Get one recurring task for the session user and the specified view ID and task ID
+pub async fn get_one_recurring_task(state: &AppState, session_user_id: &Uuid, view_id: i64, recurring_task_id: i64) -> ServiceResult<RecurringTask> {
+    // Get the task view permission for the user and view ID
+    let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
+
+    // See if the user has the necessary permissions to view recurring tasks
+    if !task_view_permission.show_recurring {
+        return Err(ServiceError::Forbidden("You do not have permission to view recurring tasks in this view".into()));
+    }
+
+    // Get the recurring task from the database
+    let task = repository::get_one_recurring_task(&state.pg_pool, &task_view_permission.owner_id, recurring_task_id).await?;
+    if task.is_none() {
+        return Err(ServiceError::NotFound("Recurring task not found".into()));
+    }
+
+    Ok(task.unwrap())
+}

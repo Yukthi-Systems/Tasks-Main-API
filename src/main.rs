@@ -96,7 +96,7 @@ async fn main() -> std::io::Result<()> {
                 .wrap(from_fn(middleware::user_session::auth_check))
                 .service(task_events::create_recurring_task)
                 .service(task_events::list_recurring_tasks)
-                // .service(task_events::get_recurring_task) // Including shared task fetch (if the view permits)
+                .service(task_events::get_recurring_task)
                 // .service(task_events::update_recurring_task)  // Only self-owned
                 // .service(task_events::delete_recurring_task)  // Only self-owned
             )

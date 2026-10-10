@@ -29,8 +29,19 @@ pub async fn list_recurring_tasks(session_user: web::ReqData<SessionUser>, path:
 
     // List recurring tasks based on the view (There are no Sub-Tasks)
     // Has the show_recurring permission enabled for this view
-
     let tasks = task_events::list_recurring_tasks(&state, &session_user.user_id, view_id).await?;
 
     Ok(HttpResponse::Ok().json(tasks))
+}
+
+
+#[get("/info/{view_id}/{recurring_task_id}")]
+pub async fn get_recurring_task(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, i64)>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let (view_id, recurring_task_id) = path.into_inner();
+
+    // Has the show_recurring permission enabled for this view
+    let task = task_events::get_one_recurring_task(&state, &session_user.user_id, view_id, recurring_task_id).await?;
+
+    Ok(HttpResponse::Ok().json(task))
 }

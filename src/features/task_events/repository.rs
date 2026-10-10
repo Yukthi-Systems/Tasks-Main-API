@@ -51,3 +51,21 @@ pub async fn list_recurring_tasks(db_pool: &PgPool, owner_id: &Uuid) -> PgResult
 
     Ok(RecurringTask::from_rows(rows))
 }
+
+
+pub async fn get_one_recurring_task(db_pool: &PgPool, owner_id: &Uuid, recurring_task_id: i64) -> PgResult<Option<RecurringTask>> {
+    let client = db_pool.get().await?;
+
+    let row = client
+        .query_opt(
+            r#"
+            SELECT recurring_task_id, owner_id, title, description, details, rrule, created_at
+            FROM recurring_tasks
+            WHERE owner_id = $1 AND recurring_task_id = $2
+            "#,
+            &[owner_id, &recurring_task_id],
+        )
+        .await?;
+
+    Ok(row.map(RecurringTask::from))
+}
