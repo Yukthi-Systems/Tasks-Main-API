@@ -3,6 +3,8 @@ use pg_row_derive::RowFrom;
 use uuid::Uuid;
 
 
+type ChronoUtc = chrono::DateTime<chrono::Utc>;
+
 
 #[derive(Deserialize)]
 pub enum TaskStatus {
@@ -18,15 +20,35 @@ pub enum TaskStatus {
 pub struct TaskViewPermission {
     pub view_id: i64,
     pub owner_id: Uuid,
+
     pub status_filter: Vec<String>,
+
     pub show_recurring: bool,
     pub show_comments: bool,
     pub show_subtasks: bool,
     pub show_assigned: bool,
+
     pub can_create: bool,
     pub can_edit: bool,
     pub can_delete: bool,
+
     pub is_owner: bool,
+}
+
+
+#[derive(RowFrom, Serialize, Deserialize)]
+pub struct SharedTaskView {
+    pub view_id: i64,
+    pub user_id: Uuid,
+
+    pub share_notes: String,
+    pub ui_info: serde_json::Value,
+
+    pub can_create: bool,
+    pub can_edit: bool,
+    pub can_delete: bool,
+
+    pub shared_at: ChronoUtc,
 }
 
 

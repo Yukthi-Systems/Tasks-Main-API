@@ -79,7 +79,8 @@ async fn main() -> std::io::Result<()> {
                 .service(task_views::create_shared_task_view)
                 .service(task_views::delete_shared_task_view)
                 .service(task_views::update_shared_task_view)
-                // .service(task_views::list_shared_task_views)  // 2 Types: Shared with me & Shared by me on the given viewID (should be owned by the user)
+                .service(task_views::list_all_shared_users)
+                .service(task_views::get_shared_task_view)
             )
             // .service(
             //     actix_scope("/tasks")   // Should give ViewID every time

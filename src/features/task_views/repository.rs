@@ -1,7 +1,7 @@
-use super::dto::{CreateTaskViewDto, TaskViewDbDto, UpdateTaskViewDto};
+use super::dto::{CreateTaskViewDto, TaskViewDbDto, UpdateTaskViewDto, CreateSharedTaskViewDto};
+use super::model::{TaskViewPermission, SharedTaskView};
 use deadpool_postgres::Pool as PgPool;
-use super::model::TaskViewPermission;
-use crate::{errors::PgResult, features::task_views::CreateSharedTaskViewDto};
+use crate::errors::PgResult;
 use uuid::Uuid;
 
 
@@ -58,6 +58,27 @@ pub async fn list_task_views(db_pool: &PgPool, user_id: &Uuid) -> PgResult<Vec<T
             ui_info, status_filter::TEXT[], show_recurring, show_comments, show_subtasks, show_assigned
             FROM task_views
             WHERE owner_id = $1
+            "#,
+            &[user_id],
+        )
+        .await?;
+
+    Ok(TaskViewDbDto::from_rows(rows))
+}
+
+
+pub async fn list_my_shared_views(db_pool: &PgPool, user_id: &Uuid) -> PgResult<Vec<TaskViewDbDto>> {
+    let client = db_pool.get().await?;
+
+    let rows = client
+        .query(
+            r#"
+            SELECT tv.view_id, tv.owner_id, tv.view_name, tv.description,
+            tv.ui_info, tv.status_filter::TEXT[], tv.show_recurring, tv.show_comments, tv.show_subtasks, tv.show_assigned
+            FROM task_views tv
+            INNER JOIN shared_views sv
+                ON sv.view_id = tv.view_id
+            WHERE sv.user_id = $1
             "#,
             &[user_id],
         )
@@ -303,4 +324,57 @@ pub async fn update_shared_task_view(db_pool: &PgPool, owner_id: &Uuid, new_info
         .await?;
 
     Ok(result)
+}
+
+
+pub async fn list_all_shared_view_users(db_pool: &PgPool, view_id: i64) -> PgResult<Vec<SharedTaskView>> {
+    let client = db_pool.get().await?;
+
+    let rows = client
+        .query(
+            r#"
+            SELECT
+                view_id,
+                user_id,
+                share_notes,
+                ui_info,
+                can_create,
+                can_edit,
+                can_delete,
+                shared_at
+            FROM shared_views
+            WHERE view_id = $1
+            "#,
+            &[&view_id],
+        )
+        .await?;
+
+    Ok(SharedTaskView::from_rows(rows))
+}
+
+
+pub async fn get_one_shared_view_user_info(db_pool: &PgPool, view_id: i64, user_id: &Uuid) -> PgResult<Option<SharedTaskView>> {
+    let client = db_pool.get().await?;
+
+    let row = client
+        .query_opt(
+            r#"
+            SELECT
+                view_id,
+                user_id,
+                share_notes,
+                ui_info,
+                can_create,
+                can_edit,
+                can_delete,
+                shared_at
+            FROM shared_views
+            WHERE view_id = $1
+                AND user_id = $2
+            "#,
+            &[&view_id, user_id],
+        )
+        .await?;
+
+    Ok(row.map(SharedTaskView::from))
 }

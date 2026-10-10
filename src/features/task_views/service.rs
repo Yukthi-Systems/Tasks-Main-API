@@ -1,7 +1,7 @@
 use super::dto::{TaskViewDbDto, UpdateTaskViewDto, CreateSharedTaskViewDto};
 use crate::cache::{set_redis_cache, delete_redis_cache, get_redis_cache};
+use super::model::{TaskViewPermission, SharedTaskView};
 use crate::errors::{ServiceResult, ServiceError};
-use super::model::TaskViewPermission;
 use crate::state::AppState;
 use super::repository;
 use uuid::Uuid;
@@ -119,4 +119,43 @@ pub async fn update_shared_task_view(state: &AppState, session_user_id: &Uuid, n
     delete_redis_cache(&state.redis_cache, &format!("tvp:{}:*", new_info.view_id)).await?;
 
     Ok(result)
+}
+
+
+/// List all shared users for a given task view, only the owner can perform this action
+pub async fn list_all_shared_users(state: &AppState, session_user_id: &Uuid, view_id: i64) -> ServiceResult<Vec<SharedTaskView>> {
+    // Make sure the session user is the owner of the shared task view
+    let shared_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
+    if !shared_view_permission.is_owner {
+        return Err(ServiceError::Forbidden("You do not have permission to view the shared users for this task view".into()));
+    }
+
+    // Since the session user is the owner, they have access to all shared users for this task view
+    let shared_users = repository::list_all_shared_view_users(&state.pg_pool, view_id).await?;
+
+    Ok(shared_users)    
+}
+
+
+/// Get a shared task view by its ID, either as the owner or as a shared user
+pub async fn get_shared_task_view_user_info(state: &AppState, session_user_id: &Uuid, view_id: i64, user_id: &Uuid) -> ServiceResult<Option<SharedTaskView>> {
+    // Get the task view permission for the session user
+    let shared_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
+
+    // If the session user is the owner, they can access any shared user information associated with this view ID
+    if shared_view_permission.is_owner {
+        let info = repository::get_one_shared_view_user_info(&state.pg_pool, view_id, user_id).await?;
+
+        return Ok(info);
+    }
+
+    // If the session user is not the owner, they can only access their own shared task view
+    if *session_user_id != *user_id {
+        return Err(ServiceError::Forbidden("You do not have permission to view this shared task view user".into()));
+    }
+
+    // Since the session user is not the owner but is the same as the requested user, fetch their shared task view
+    let info = repository::get_one_shared_view_user_info(&state.pg_pool, view_id, user_id).await?;
+
+    Ok(info)
 }

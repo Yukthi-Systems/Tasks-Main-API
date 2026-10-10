@@ -111,10 +111,15 @@ CREATE TABLE recurring_tasks (
 -- Task Assignees (Mapping of tasks to users)
 CREATE TABLE task_assignees (
     task_id BIGINT NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+
+    -- The user who is assigned to the task
+    assignee_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+
+    -- The user who assigned the task
+    assigned_by UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
 
     -- Composite primary key ensures uniqueness of task assignments for each user
-    PRIMARY KEY (task_id, user_id)
+    PRIMARY KEY (task_id, assignee_id)
 );
 
 

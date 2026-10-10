@@ -19,15 +19,20 @@ pub async fn create_task_view(session_user: web::ReqData<SessionUser>, data: web
 }
 
 
-#[get("/list")]
-pub async fn list_task_views(session_user: web::ReqData<SessionUser>, state: web::Data<AppState>) -> ApiResponse {
+#[get("/list/{is_shared}")]
+pub async fn list_task_views(session_user: web::ReqData<SessionUser>, path: web::Path<bool>, state: web::Data<AppState>) -> ApiResponse {
     // Get SessionUser from request data
     let session_user = session_user.into_inner();
+    let is_shared = path.into_inner();
 
     // No Pagination implemented, since it might not be necessary for a small number of task views
 
     // List task views for the session user
-    let task_views = task_views::list_task_views(&state.pg_pool, &session_user.user_id).await?;
+    let task_views = if is_shared {
+        task_views::list_my_shared_views(&state.pg_pool, &session_user.user_id).await?
+    } else {
+        task_views::list_task_views(&state.pg_pool, &session_user.user_id).await?
+    };
 
     Ok(HttpResponse::Ok().json(task_views))
 }
@@ -113,4 +118,31 @@ pub async fn update_shared_task_view(session_user: web::ReqData<SessionUser>, da
     }
 
     Ok(HttpResponse::Ok().body("Shared task view updated successfully"))
+}
+
+
+#[get("/list/{view_id}")]
+pub async fn list_all_shared_users(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, state: web::Data<AppState>) -> ApiResponse {
+    // Get SessionUser from request data
+    let session_user = session_user.into_inner();
+    let view_id = path.into_inner();
+
+    // Only possible if its the owner of the shared task views, else no
+    // List all users who have access to the specified shared task view
+    let result = task_views::list_all_shared_users(&state, &session_user.user_id, view_id).await?;
+
+    Ok(HttpResponse::Ok().json(result))
+}
+
+
+#[get("/info/{view_id}/{user_id}")]
+pub async fn get_shared_task_view(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, uuid::Uuid)>, state: web::Data<AppState>) -> ApiResponse {
+    // Get SessionUser from request data
+    let session_user = session_user.into_inner();
+    let (view_id, user_id) = path.into_inner();
+
+    // Get the shared task view for the specified view ID and user ID
+    let shared_task_view = task_views::get_shared_task_view_user_info(&state, &session_user.user_id, view_id, &user_id).await?;
+
+    Ok(HttpResponse::Ok().json(shared_task_view))
 }
