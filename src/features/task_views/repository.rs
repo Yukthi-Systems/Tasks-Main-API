@@ -55,7 +55,7 @@ pub async fn list_task_views(db_pool: &PgPool, user_id: &Uuid) -> PgResult<Vec<T
         .query(
             r#"
             SELECT view_id, owner_id, view_name, description,
-            ui_info, status_filter, show_recurring, show_comments, show_subtasks, show_assigned
+            ui_info, status_filter::TEXT[], show_recurring, show_comments, show_subtasks, show_assigned
             FROM task_views
             WHERE owner_id = $1
             "#,
@@ -74,7 +74,7 @@ pub async fn get_task_view(db_pool: &PgPool, user_id: &Uuid, view_id: i64) -> Pg
         .query_opt(
             r#"
             SELECT view_id, owner_id, view_name, description,
-            ui_info, status_filter, show_recurring, show_comments, show_subtasks, show_assigned
+            ui_info, status_filter::TEXT[], show_recurring, show_comments, show_subtasks, show_assigned
             FROM task_views
             WHERE owner_id = $1 AND view_id = $2
             "#,
