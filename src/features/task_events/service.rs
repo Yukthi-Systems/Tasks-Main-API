@@ -1,7 +1,7 @@
 use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto};
 use crate::features::task_views::{TaskTag, TaskStatus, get_task_view_permission};
 use crate::cache::{get_redis_cache, set_redis_cache, delete_redis_cache};
-use super::model::{RecurringTask, TaskOwnershipInfo};
+use super::model::{RecurringTask, TaskOwnershipInfo, TaskInfo};
 use crate::errors::{ServiceResult, ServiceError};
 use crate::state::AppState;
 use super::repository;
@@ -277,4 +277,40 @@ pub async fn delete_task(state: &AppState, session_user_id: &Uuid, view_id: i64,
     delete_redis_cache(&state.redis_cache, &cache_key).await?;
 
     Ok(())
+}
+
+
+/// Get a task along with its assignees by the session user and the specified view ID and task ID
+pub async fn get_task_and_assignees(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64) -> ServiceResult<TaskInfo> {
+    // Get the task view permission for the user and view ID
+    let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
+
+    // Fetch the task and see the Tag and Status for additional permission checks
+    let task_info = repository::get_task(&state.pg_pool, task_id).await?;
+    if task_info.is_none() {
+        return Err(ServiceError::NotFound("Task not found or has been deleted".into()));
+    }
+    let task_info = task_info.unwrap();
+
+    // Check the Tag and Status for additional permission checks
+    let task_tag = &TaskTag::from_str(&task_info.task_tag).unwrap();
+    let task_status = &TaskStatus::from_str(&task_info.task_status).unwrap();
+
+    // If it is a sub-task, check if the user has permission to view subtasks
+    let can_view_subtask = if task_info.parent_task_id.is_some() {
+        task_view_permission.show_subtasks
+    } else {
+        true
+    };
+
+    // Determine if the user can view the task based on subtask permission, tag, and status
+    let can_view_task =
+        can_view_subtask
+        && task_view_permission.check_tag(task_tag)
+        && task_view_permission.check_status(task_status);
+    if !can_view_task {
+        return Err(ServiceError::Forbidden("You do not have permission to view this task based on its tag or status".into()));
+    }
+
+    Ok(task_info)
 }

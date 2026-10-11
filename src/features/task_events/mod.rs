@@ -7,6 +7,7 @@ mod repository;
 pub use dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto};
 pub use service::{
     get_one_recurring_task,
+    get_task_and_assignees,
     create_recurring_task,
     update_recurring_task,
     delete_recurring_task,

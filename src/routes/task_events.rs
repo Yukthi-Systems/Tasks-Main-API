@@ -109,3 +109,14 @@ pub async fn delete_task(session_user: web::ReqData<SessionUser>, path: web::Pat
 
     Ok(HttpResponse::Ok().body("Task deleted successfully"))
 }
+
+
+#[get("/get/{view_id}/{task_id}")]
+pub async fn get_task(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, i64)>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let (view_id, task_id) = path.into_inner();
+
+    let task = task_events::get_task_and_assignees(&state, &session_user.user_id, view_id, task_id).await?;
+
+    Ok(HttpResponse::Ok().json(task))
+}

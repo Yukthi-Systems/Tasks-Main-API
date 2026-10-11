@@ -39,6 +39,7 @@ pub struct TaskInfo {
 
     pub owner_id: Uuid,
     pub created_by: Option<Uuid>,
+    pub assignee_ids: Vec<Uuid>,
 
     pub title: String,
     pub description: String,

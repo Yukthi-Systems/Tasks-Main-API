@@ -232,21 +232,26 @@ pub async fn get_task(db_pool: &PgPool, task_id: i64) -> PgResult<Option<TaskInf
         .query_opt(
             r#"
             SELECT
-                task_id,
-                owner_id,
-                created_by,
-                parent_task_id,
-                title,
-                description,
-                details,
-                task_status,
-                task_tag,
-                start_at,
-                end_at,
-                created_at,
-                updated_at
-            FROM tasks
-            WHERE task_id = $1
+                t.task_id,
+                t.owner_id,
+                t.created_by,
+                t.parent_task_id,
+                t.title,
+                t.description,
+                t.details,
+                t.task_status,
+                t.task_tag,
+                t.start_at,
+                t.end_at,
+                t.created_at,
+                t.updated_at,
+                ARRAY(
+                    SELECT ta.assignee_id
+                    FROM task_assignees ta
+                    WHERE ta.task_id = t.task_id
+                ) AS assignee_ids
+            FROM tasks t
+            WHERE t.task_id = $1
             "#,
             &[&task_id],
         )
