@@ -43,3 +43,17 @@ pub struct CreateTaskDto {
     pub start_at: ChronoUtc,
     pub end_at: ChronoUtc,
 }
+
+
+#[derive(Deserialize)]
+pub struct UpdateTaskDto {
+    pub title: String,
+    pub description: String,
+    pub details: serde_json::Value,
+
+    pub task_status: TaskStatus,
+    pub task_tag: TaskTag,
+
+    pub start_at: ChronoUtc,
+    pub end_at: ChronoUtc,
+}

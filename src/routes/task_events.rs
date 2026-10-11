@@ -1,4 +1,4 @@
-use crate::features::task_events::{self, CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto};
+use crate::features::task_events::{self, CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto};
 use actix_web::{HttpResponse, delete, get, patch, post, web};
 use crate::features::task_views::TaskTag;
 use crate::features::users::SessionUser;
@@ -80,10 +80,20 @@ pub async fn create_task(session_user: web::ReqData<SessionUser>, path: web::Pat
     let view_id = path.into_inner();
     let task_info = data.into_inner();
 
-    // Any assignee can create a sub-task
-    // Any can_create can create a top-level task under that user
-    // Self can do anything under owned by them tasks
     task_events::create_task(&state, &session_user.user_id, view_id, &task_info).await?;
 
     Ok(HttpResponse::Created().body("Task created successfully"))
+}
+
+
+#[patch("/update/{view_id}/{task_id}")]
+pub async fn update_task(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, i64)>, data: web::Json<UpdateTaskDto>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let (view_id, task_id) = path.into_inner();
+    let task_info = data.into_inner();
+
+    // Can update tasks if show_tasks, can_update is true
+    task_events::update_task(&state, &session_user.user_id, view_id, task_id, &task_info).await?;
+
+    Ok(HttpResponse::Ok().body("Task updated successfully"))
 }

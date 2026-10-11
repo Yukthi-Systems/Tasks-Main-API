@@ -1,7 +1,7 @@
 use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto};
+use super::model::{RecurringTask, TaskOwnershipInfo};
 use crate::features::task_views::TaskTag;
 use deadpool_postgres::Pool as PgPool;
-use super::model::RecurringTask;
 use crate::errors::PgResult;
 use uuid::Uuid;
 
@@ -121,68 +121,69 @@ pub async fn delete_recurring_task(db_pool: &PgPool, owner_id: &Uuid, recurring_
 }
 
 
-pub async fn create_task(db_pool: &PgPool, owner_id: &Uuid, new_task: &CreateTaskDto) -> PgResult<u64> {
-    let client = db_pool.get().await?;
-
-    let result = client
-        .execute(
-            r#"
-            INSERT INTO tasks (owner_id, parent_task_id, title, description, details, task_status, task_tag, start_at, end_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            "#,
-            &[
-                owner_id,
-                &new_task.parent_task_id,
-                &new_task.title,
-                &new_task.description,
-                &new_task.details,
-                &new_task.task_status.as_str(),
-                &new_task.task_tag.as_str(),
-                &new_task.start_at,
-                &new_task.end_at,
-            ],
-        )
-        .await?;
-
-    Ok(result)
-}
-
-
-pub async fn check_parent_task_owner_or_assignee(db_pool: &PgPool, session_user_id: &Uuid, parent_task_id: i64) -> PgResult<Option<bool>> {
+pub async fn get_task_ownership_info(db_pool: &PgPool, task_id: i64) -> PgResult<Option<TaskOwnershipInfo>> {
     let client = db_pool.get().await?;
 
     let row = client
         .query_opt(
             r#"
-            SELECT CASE
-                WHEN t.owner_id = $1 THEN TRUE
-                WHEN EXISTS (
-                    SELECT 1
-                    FROM task_assignees ta
-                    WHERE ta.task_id = t.task_id
-                      AND ta.assignee_id = $1
-                ) THEN FALSE
-                ELSE NULL
-            END AS permission
+            SELECT
+                t.task_id,
+                t.owner_id,
+                t.created_by,
+                COALESCE(
+                    (
+                        SELECT ARRAY_AGG(ta.assignee_id)
+                        FROM task_assignees ta
+                        WHERE ta.task_id = t.task_id
+                    ),
+                    ARRAY[]::UUID[]
+                ) AS assignee_ids
             FROM tasks t
-            WHERE t.task_id = $2
-              AND (
-                  t.owner_id = $1
-                  OR EXISTS (
-                      SELECT 1
-                      FROM task_assignees ta
-                      WHERE ta.task_id = t.task_id
-                        AND ta.assignee_id = $1
-                  )
-              )
+            WHERE t.task_id = $1
             "#,
-            &[session_user_id, &parent_task_id],
+            &[&task_id],
         )
         .await?;
 
-    // True = session user is the owner
-    // False = session user is an assignee
-    // NULL = session user has no permission
+    Ok(row.map(TaskOwnershipInfo::from))
+}
 
-    Ok(row.map(|r| r.get::<_, bool>("permission")))
+
+pub async fn create_new_task(db_pool: &PgPool, owner_id: &Uuid, session_user_id: &Uuid, new_task: &CreateTaskDto) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            INSERT INTO tasks (
+                owner_id,
+                title,
+                description,
+                details,
+                task_tag,
+                task_status,
+                start_at,
+                end_at,
+                parent_task_id,
+                created_by
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            "#,
+            &[
+                owner_id,
+                &new_task.title,
+                &new_task.description,
+                &new_task.details,
+                &new_task.task_tag.as_str(),
+                &new_task.task_status.as_str(),
+                &new_task.start_at,
+                &new_task.end_at,
+                &new_task.parent_task_id,
+                session_user_id,
+            ],
+        )
+        .await?;
+
+    Ok(result)
 }

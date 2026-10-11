@@ -57,6 +57,7 @@ CREATE TYPE task_tag AS ENUM (
 CREATE TABLE tasks (
     task_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     owner_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    created_by UUID NULL REFERENCES users(user_id) ON DELETE SET NULL,
     parent_task_id BIGINT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
 
     title VARCHAR(255) NOT NULL,
@@ -74,6 +75,18 @@ CREATE TABLE tasks (
 
     -- Ensure that a user cannot have multiple tasks with the same title under the same parent task
     UNIQUE (owner_id, parent_task_id, title)
+);
+
+
+-- Task Assignees (Mapping of tasks to users)
+CREATE TABLE task_assignees (
+    task_id BIGINT NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
+
+    -- The user who is assigned to the task
+    assignee_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+
+    -- Composite primary key ensures uniqueness of task assignments for each user
+    PRIMARY KEY (task_id, assignee_id)
 );
 
 
@@ -119,21 +132,6 @@ CREATE TABLE recurring_tasks (
 
     -- Ensure that a user cannot have multiple recurring tasks with the same title
     UNIQUE (owner_id, title)
-);
-
-
--- Task Assignees (Mapping of tasks to users)
-CREATE TABLE task_assignees (
-    task_id BIGINT NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
-
-    -- The user who is assigned to the task
-    assignee_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-
-    -- The user who assigned the task
-    assigned_by UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-
-    -- Composite primary key ensures uniqueness of task assignments for each user
-    PRIMARY KEY (task_id, assignee_id)
 );
 
 

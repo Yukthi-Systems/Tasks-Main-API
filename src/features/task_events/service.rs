@@ -1,33 +1,36 @@
-use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto};
+use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto};
 use crate::features::task_views::{TaskTag, get_task_view_permission};
 use crate::cache::{get_redis_cache, set_redis_cache};
+use super::model::{RecurringTask, TaskOwnershipInfo};
 use crate::errors::{ServiceResult, ServiceError};
-use super::model::RecurringTask;
 use crate::state::AppState;
 use super::repository;
 use uuid::Uuid;
 
 
-/// Check all parent task conditions for creating a new task + Return if the user is the owner or an assignee
-async fn parent_task_owner_or_assignee_check(state: &AppState, session_user_id: &Uuid, parent_task_id: i64) -> ServiceResult<bool> {
-    // Check if the parent task owner or assignee information is cached in Redis
-    let cache_key = format!("ptoa:{}:{}", session_user_id, parent_task_id);
-    let is_owner_or_assignee_cache: Option<bool> = get_redis_cache(&state.redis_cache, &cache_key).await?;
-    if let Some(is_owner_or_assignee) = is_owner_or_assignee_cache {
-        return Ok(is_owner_or_assignee);
-    }
+/// Get the ownership information of a task
+async fn get_task_ownership_info(state: &AppState, task_id: i64) -> ServiceResult<TaskOwnershipInfo> {
+    // Check if the ownership information of the task is cached in Redis
+    let cache_key = format!("task:ownership:{}", task_id);
+    let task_ownership_info: Option<TaskOwnershipInfo> = get_redis_cache(&state.redis_cache, &cache_key).await?;
 
-    // See if the parent task has the session user as the owner or an assignee
-    let is_owner_or_assignee = repository::check_parent_task_owner_or_assignee(&state.pg_pool, session_user_id, parent_task_id).await?;
-    if is_owner_or_assignee.is_none() {
-        return Err(ServiceError::BadRequest("Parent task does not exist or is not valid for the user".into()));
-    }
-    let is_owner_or_assignee = is_owner_or_assignee.unwrap();
+    // See if the task has the session user as the owner or an assignee
+    let task_ownership_info = if let Some(task_ownership_info) = task_ownership_info {
+        task_ownership_info
+    } else {
+        let task_ownership_info = repository::get_task_ownership_info(&state.pg_pool, task_id).await?;
+        if task_ownership_info.is_none() {
+            return Err(ServiceError::BadRequest("Task does not exist".into()));
+        }
+        let task_ownership_info = task_ownership_info.unwrap();
 
-    // Cache the result in Redis
-    set_redis_cache(&state.redis_cache, &cache_key, &is_owner_or_assignee, 1 * 60 * 60).await?;
+        // Cache the result in Redis
+        set_redis_cache(&state.redis_cache, &cache_key, &task_ownership_info, 1 * 60 * 60).await?;
 
-    Ok(is_owner_or_assignee)
+        task_ownership_info
+    };
+
+    Ok(task_ownership_info)
 }
 
 
@@ -134,26 +137,55 @@ pub async fn create_task(state: &AppState, session_user_id: &Uuid, view_id: i64,
     let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
 
     // See if the user has the necessary permissions to create tasks
-    let can_create_task: bool = if new_task.parent_task_id.is_some() { task_view_permission.show_recurring } else { true }
+    let is_recurring_task_allowed = new_task.parent_task_id.is_none() || task_view_permission.show_recurring;
+    let can_create_task =
+        is_recurring_task_allowed
         && task_view_permission.can_create
         && task_view_permission.check_tag(&new_task.task_tag)
         && task_view_permission.check_status(&new_task.task_status);
+
+    // If the user cannot create the task, return a forbidden error
     if !can_create_task {
         return Err(ServiceError::Forbidden("You do not have permission to create tasks in this view with the specified tag or status".into()));
     }
 
-    // Check if the parent task exists if a parent_task_id is provided
-    // If a parent task ID is provided, check if the parent task exists and is valid for the user
-    if let Some(parent_task_id) = new_task.parent_task_id {
-        let _is_owner: bool = parent_task_owner_or_assignee_check(&state, &session_user_id, parent_task_id).await?;
-        // Either way we can proceed with creating the new task since the parent task exists and the user has the necessary permissions
+    // At this point, we have verified that the user has the necessary permissions to create the task
+    // If the task has a parent, we need to ensure the parent task exists and the user has the necessary permissions
+    if new_task.parent_task_id.is_some() {
+        // Make sure the user has permission to create sub-tasks
+        let parent_task_id = new_task.parent_task_id.unwrap();
+        let task_ownership_info = get_task_ownership_info(&state, parent_task_id).await?;
+
+        // Make sure the user can create sub-tasks under the parent task
+        // We use the owner ID from the task view permission, because the session user might not be the owner of the parent task
+        // this is to handle the shared view scenario where the session user might have no relationship with the parent task directly whatsoever
+        if !task_ownership_info.can_create(&task_view_permission.owner_id) {
+            return Err(ServiceError::Forbidden("You do not have permission to create sub-tasks under this parent task".into()));
+        }
     }
 
-    // Create the task in the database
-    let result = repository::create_task(&state.pg_pool, &task_view_permission.owner_id, new_task).await?;
+    // Since all necessary checks have passed, proceed to create the task
+    let result = repository::create_new_task(
+        &state.pg_pool,
+        &task_view_permission.owner_id,
+        session_user_id,
+        new_task,
+    ).await?;
+
+    // Check if the task creation was successful
     if result == 0 {
         return Err(ServiceError::BadRequest("Failed to create task".into()));
     }
+
+    Ok(())
+}
+
+
+/// Update an existing task by the session user and the specified view ID and task ID
+pub async fn update_task(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, updated_task: &UpdateTaskDto) -> ServiceResult<()> {
+    // Get the task view permission for the user and view ID
+    let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
+
 
     Ok(())
 }
