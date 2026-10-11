@@ -1,5 +1,5 @@
 use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto};
-use super::model::{RecurringTask, TaskOwnershipInfo};
+use super::model::{RecurringTask, TaskOwnershipInfo, TaskInfo};
 use crate::features::task_views::TaskTag;
 use deadpool_postgres::Pool as PgPool;
 use crate::errors::PgResult;
@@ -204,7 +204,8 @@ pub async fn update_task(db_pool: &PgPool, updated_task: &UpdateTaskDto) -> PgRe
                 task_tag = $4,
                 task_status = $5,
                 start_at = $6,
-                end_at = $7
+                end_at = $7,
+                updated_at = NOW()
             WHERE task_id = $8
             "#,
             &[
@@ -217,6 +218,54 @@ pub async fn update_task(db_pool: &PgPool, updated_task: &UpdateTaskDto) -> PgRe
                 &updated_task.end_at,
                 &updated_task.task_id,
             ],
+        )
+        .await?;
+
+    Ok(result)
+}
+
+
+pub async fn get_task(db_pool: &PgPool, task_id: i64) -> PgResult<Option<TaskInfo>> {
+    let client = db_pool.get().await?;
+
+    let row = client
+        .query_opt(
+            r#"
+            SELECT
+                task_id,
+                owner_id,
+                created_by,
+                parent_task_id,
+                title,
+                description,
+                details,
+                task_status,
+                task_tag,
+                start_at,
+                end_at,
+                created_at,
+                updated_at
+            FROM tasks
+            WHERE task_id = $1
+            "#,
+            &[&task_id],
+        )
+        .await?;
+
+    Ok(row.map(TaskInfo::from))
+}
+
+
+pub async fn delete_task(db_pool: &PgPool, task_id: i64) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            DELETE FROM tasks
+            WHERE task_id = $1
+            "#,
+            &[&task_id],
         )
         .await?;
 

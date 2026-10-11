@@ -32,6 +32,29 @@ pub struct TaskOwnershipInfo {
 }
 
 
+#[derive(RowFrom, Serialize)]
+pub struct TaskInfo {
+    pub task_id: i64,
+    pub parent_task_id: Option<i64>,
+
+    pub owner_id: Uuid,
+    pub created_by: Option<Uuid>,
+
+    pub title: String,
+    pub description: String,
+    pub details: serde_json::Value,
+
+    pub task_status: String,
+    pub task_tag: String,
+
+    pub start_at: ChronoUtc,
+    pub end_at: ChronoUtc,
+
+    pub created_at: ChronoUtc,
+    pub updated_at: ChronoUtc,
+}
+
+
 // ------- Implementations ------- //
 
 

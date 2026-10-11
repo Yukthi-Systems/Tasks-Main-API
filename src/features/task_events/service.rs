@@ -1,6 +1,6 @@
 use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto};
-use crate::features::task_views::{TaskTag, get_task_view_permission};
-use crate::cache::{get_redis_cache, set_redis_cache};
+use crate::features::task_views::{TaskTag, TaskStatus, get_task_view_permission};
+use crate::cache::{get_redis_cache, set_redis_cache, delete_redis_cache};
 use super::model::{RecurringTask, TaskOwnershipInfo};
 use crate::errors::{ServiceResult, ServiceError};
 use crate::state::AppState;
@@ -186,14 +186,14 @@ pub async fn update_task(state: &AppState, session_user_id: &Uuid, view_id: i64,
     // Get the task view permission for the user and view ID
     let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
 
-    // See if the user has the necessary permissions to create tasks
-    let can_create_task =
+    // See if the user has the necessary permissions to update tasks
+    let can_update_task =
         task_view_permission.can_edit
         && task_view_permission.check_tag(&updated_task.task_tag)
         && task_view_permission.check_status(&updated_task.task_status);
 
-    // If the user cannot create the task, return a forbidden error
-    if !can_create_task {
+    // If the user cannot update the task, return a forbidden error
+    if !can_update_task {
         return Err(ServiceError::Forbidden("You do not have permission to update tasks in this view with the specified tag or status".into()));
     }
 
@@ -201,7 +201,7 @@ pub async fn update_task(state: &AppState, session_user_id: &Uuid, view_id: i64,
     let task_ownership_info = get_task_ownership_info(&state, updated_task.task_id).await?;
 
     // If the task is not a root task, ensure the user has permission to update it
-    if !task_ownership_info.is_root_task {
+    if !task_ownership_info.is_root_task {  // Not root task means it is a sub-task
         if !task_view_permission.show_subtasks {
             return Err(ServiceError::Forbidden("You do not have permission to update sub-tasks".into()));
         }
@@ -220,6 +220,61 @@ pub async fn update_task(state: &AppState, session_user_id: &Uuid, view_id: i64,
     if result == 0 {
         return Err(ServiceError::BadRequest("Failed to update task".into()));
     }
+
+    Ok(())
+}
+
+
+/// Delete an existing task by the session user and the specified view ID and task ID
+pub async fn delete_task(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64) -> ServiceResult<()> {
+    // Get the task view permission for the user and view ID
+    let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
+
+    // Fetch the task and see the Tag and Status for additional permission checks
+    let task_info = repository::get_task(&state.pg_pool, task_id).await?;
+    if task_info.is_none() {
+        return Err(ServiceError::NotFound("Task not found or has been deleted".into()));
+    }
+    let task_info = task_info.unwrap();
+
+    // Check the Tag and Status for additional permission checks
+    let task_tag = &TaskTag::from_str(&task_info.task_tag).unwrap();
+    let task_status = &TaskStatus::from_str(&task_info.task_status).unwrap();
+    let can_delete_task =
+        task_view_permission.can_delete
+        && task_view_permission.check_tag(task_tag)
+        && task_view_permission.check_status(task_status);
+    if !can_delete_task {
+        return Err(ServiceError::Forbidden("You do not have permission to delete this task based on its tag or status or your view permissions".into()));
+    }
+
+    // Fetch the task information for the task being deleted
+    let task_ownership_info = get_task_ownership_info(&state, task_id).await?;
+
+    // If the task is not a root task, ensure the user has permission to delete it
+    if !task_ownership_info.is_root_task {  // Not root task means it is a sub-task
+        if !task_view_permission.show_subtasks {
+            return Err(ServiceError::Forbidden("You do not have permission to delete sub-tasks".into()));
+        }
+    }
+
+    // Check if the task view user can edit the task
+    if !task_ownership_info.can_delete(&task_view_permission.owner_id) {
+        // Either the user is not the owner of the task or is not the creator of the task
+        return Err(ServiceError::Forbidden("You do not have permission to delete this task".into()));
+    }
+
+    // Since all necessary checks have passed, proceed to delete the task
+    let result = repository::delete_task(&state.pg_pool, task_id).await?;
+
+    // Check if the task deletion was successful
+    if result == 0 {
+        return Err(ServiceError::BadRequest("Failed to delete task".into()));
+    }
+
+    // Remove the cached ownership information for the deleted task
+    let cache_key = format!("task:ownership:{}", task_id);
+    delete_redis_cache(&state.redis_cache, &cache_key).await?;
 
     Ok(())
 }

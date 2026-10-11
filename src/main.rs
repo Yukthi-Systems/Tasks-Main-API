@@ -83,13 +83,13 @@ async fn main() -> std::io::Result<()> {
                 .service(task_views::get_shared_task_view)
             )
             .service(
-                actix_scope("/tasks")   // Should give ViewID every time
+                actix_scope("/tasks")
                 .wrap(from_fn(middleware::user_session::auth_check))
                 .service(task_events::create_task)
                 // .service(task_events::list_tasks)  // List tasks based on the view (Also Sub-Tasks) + Filter options + Search + If parent task is specified then get the child tasks as well
                 // .service(task_events::get_task) // Including shared task fetch / Sub-Task fetch
                 .service(task_events::update_task)  // Only self-owned
-                // .service(task_events::delete_task)  // Only self-owned
+                .service(task_events::delete_task)
             )
             .service(
                 actix_scope("/recurring")

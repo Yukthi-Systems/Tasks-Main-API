@@ -12,5 +12,6 @@ pub use service::{
     delete_recurring_task,
     list_recurring_tasks,
     update_task,
-    create_task
+    create_task,
+    delete_task
 };

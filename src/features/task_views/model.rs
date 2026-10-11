@@ -77,6 +77,17 @@ impl TaskStatus {
             TaskStatus::OnHold => "ON_HOLD",
         }
     }
+
+    pub fn from_str(s: &str) -> Option<TaskStatus> {
+        match s {
+            "PENDING" => Some(TaskStatus::Pending),
+            "IN_PROGRESS" => Some(TaskStatus::InProgress),
+            "COMPLETED" => Some(TaskStatus::Completed),
+            "CANCELLED" => Some(TaskStatus::Cancelled),
+            "ON_HOLD" => Some(TaskStatus::OnHold),
+            _ => None,
+        }
+    }
 }
 
 
@@ -91,21 +102,48 @@ impl TaskTag {
             TaskTag::Other => "OTHER",
         }
     }
+
+    pub fn from_str(s: &str) -> Option<TaskTag> {
+        match s {
+            "WORK" => Some(TaskTag::Work),
+            "IMPORTANT" => Some(TaskTag::Important),
+            "URGENT" => Some(TaskTag::Urgent),
+            "OPTIONAL" => Some(TaskTag::Optional),
+            "PERSONAL" => Some(TaskTag::Personal),
+            "OTHER" => Some(TaskTag::Other),
+            _ => None,
+        }
+    }
 }
 
 
 impl TaskViewPermission {
     pub fn check_status(&self, status: &TaskStatus) -> bool {
+        // If it is empty, it means all statuses are allowed
+        if self.status_filter.is_empty() {
+            return true;
+        }
+
         self.status_filter.contains(&status.as_str().to_string())
     }
 
     /// Check if the task view permission allows the specified task tag
     pub fn check_tag(&self, tag: &TaskTag) -> bool {
+        // If it is empty, it means all tags are allowed
+        if self.task_tag_filter.is_empty() {
+            return true;
+        }
+
         self.task_tag_filter.contains(&tag.as_str().to_string())
     }
 
     /// Check if all the specified task tags are allowed by the task view permission
     pub fn check_all_tags(&self, tags: &[TaskTag]) -> bool {
+        // If the list of tags is empty, it means all tags are allowed
+        if tags.is_empty() {
+            return true;
+        }
+
         tags.iter().all(|tag| self.check_tag(tag))
     }
 }

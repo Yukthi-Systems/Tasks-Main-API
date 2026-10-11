@@ -97,3 +97,15 @@ pub async fn update_task(session_user: web::ReqData<SessionUser>, path: web::Pat
 
     Ok(HttpResponse::Ok().body("Task updated successfully"))
 }
+
+
+#[delete("/delete/{view_id}/{task_id}")]
+pub async fn delete_task(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, i64)>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let (view_id, task_id) = path.into_inner();
+
+    // Can delete tasks if show_tasks, can_delete is true
+    task_events::delete_task(&state, &session_user.user_id, view_id, task_id).await?;
+
+    Ok(HttpResponse::Ok().body("Task deleted successfully"))
+}
