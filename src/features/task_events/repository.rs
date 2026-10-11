@@ -1,4 +1,4 @@
-use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto};
+use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto, TaskFilterDto};
 use super::model::{RecurringTask, TaskOwnershipInfo, TaskInfo};
 use crate::features::task_views::TaskTag;
 use deadpool_postgres::Pool as PgPool;
@@ -275,4 +275,119 @@ pub async fn delete_task(db_pool: &PgPool, task_id: i64) -> PgResult<u64> {
         .await?;
 
     Ok(result)
+}
+
+
+pub async fn get_child_tasks(db_pool: &PgPool, parent_task_id: i64, filter: &TaskFilterDto) -> PgResult<Vec<TaskInfo>> {
+    let client = db_pool.get().await?;
+
+    let rows = client
+        .query(
+            r#"
+            SELECT
+                t.task_id,
+                t.owner_id,
+                t.created_by,
+                t.parent_task_id,
+                t.title,
+                t.description,
+                t.details,
+                t.task_status,
+                t.task_tag,
+                t.start_at,
+                t.end_at,
+                t.created_at,
+                t.updated_at,
+                ARRAY(
+                    SELECT ta.assignee_id
+                    FROM task_assignees ta
+                    WHERE ta.task_id = t.task_id
+                ) AS assignee_ids
+            FROM tasks t
+            WHERE t.parent_task_id = $1
+            AND ($2::TEXT IS NULL OR t.title ILIKE '%' || $2 || '%')
+            AND t.task_status = ANY($3)
+            AND t.task_tag = ANY($4)
+            AND t.start_at >= $5
+            AND t.end_at <= $6
+            AND (
+                $7::TIMESTAMPTZ IS NULL
+                OR (t.start_at, t.task_id) > ($7, $8)
+            )
+            ORDER BY t.start_at ASC, t.task_id ASC
+            LIMIT $9
+            "#,
+            &[
+                &parent_task_id,
+                &filter.title_contains,
+                &filter.any_of_task_status_as_str(),
+                &filter.any_of_task_tag_as_str(),
+                &filter.start_at,
+                &filter.end_at,
+                &filter.cursor_start_at,
+                &filter.cursor_task_id,
+                &filter.limit,
+            ],
+        )
+        .await?;
+
+    Ok(TaskInfo::from_rows(rows))
+}
+
+
+pub async fn get_all_root_tasks(db_pool: &PgPool, owner_id: &Uuid, filter: &TaskFilterDto) -> PgResult<Vec<TaskInfo>> {
+    let client = db_pool.get().await?;
+
+    let rows = client
+        .query(
+            r#"
+            SELECT
+                t.task_id,
+                t.owner_id,
+                t.created_by,
+                t.parent_task_id,
+                t.title,
+                t.description,
+                t.details,
+                t.task_status,
+                t.task_tag,
+                t.start_at,
+                t.end_at,
+                t.created_at,
+                t.updated_at,
+                ARRAY(
+                    SELECT ta.assignee_id
+                    FROM task_assignees ta
+                    WHERE ta.task_id = t.task_id
+                ) AS assignee_ids
+            FROM tasks t
+            WHERE t.owner_id = $1
+            AND t.parent_task_id IS NULL
+            AND ($2::TEXT IS NULL OR t.title ILIKE '%' || $2 || '%')
+            AND t.task_status = ANY($3)
+            AND t.task_tag = ANY($4)
+            AND t.start_at >= $5
+            AND t.end_at <= $6
+            AND (
+                $7::TIMESTAMPTZ IS NULL
+                OR (t.start_at, t.task_id) > ($7, $8)
+            )
+            ORDER BY t.start_at ASC, t.task_id ASC
+            LIMIT $9
+            "#,
+            &[
+                &owner_id,
+                &filter.title_contains,
+                &filter.any_of_task_status_as_str(),
+                &filter.any_of_task_tag_as_str(),
+                &filter.start_at,
+                &filter.end_at,
+                &filter.cursor_start_at,
+                &filter.cursor_task_id,
+                &filter.limit,
+            ],
+        )
+        .await?;
+
+    Ok(TaskInfo::from_rows(rows))
 }

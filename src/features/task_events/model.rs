@@ -78,6 +78,7 @@ impl TaskOwnershipInfo {
     pub fn can_create(&self, user_id: &Uuid) -> bool {
         // Can be any of the owner, assignee, or creator
         // To create sub-tasks or comments
+        // Same for Create / View permission
         self.is_owner(user_id) || self.is_assignee(user_id) || self.is_creator(user_id)
     }
 

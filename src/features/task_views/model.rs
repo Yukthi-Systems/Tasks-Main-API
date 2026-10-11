@@ -139,11 +139,11 @@ impl TaskViewPermission {
 
     /// Check if all the specified task tags are allowed by the task view permission
     pub fn check_all_tags(&self, tags: &[TaskTag]) -> bool {
-        // If the list of tags is empty, it means all tags are allowed
-        if tags.is_empty() {
-            return true;
-        }
-
         tags.iter().all(|tag| self.check_tag(tag))
+    }
+
+    /// Check if all the specified task statuses are allowed by the task view permission
+    pub fn check_all_statuses(&self, statuses: &[TaskStatus]) -> bool {
+        statuses.iter().all(|status| self.check_status(status))
     }
 }

@@ -1,4 +1,4 @@
-use crate::features::task_events::{self, CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto};
+use crate::features::task_events::{self, CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto, TaskFilterDto};
 use actix_web::{HttpResponse, delete, get, patch, post, web};
 use crate::features::task_views::TaskTag;
 use crate::features::users::SessionUser;
@@ -119,4 +119,22 @@ pub async fn get_task(session_user: web::ReqData<SessionUser>, path: web::Path<(
     let task = task_events::get_task_and_assignees(&state, &session_user.user_id, view_id, task_id).await?;
 
     Ok(HttpResponse::Ok().json(task))
+}
+
+
+#[get("/list/{view_id}")]
+pub async fn list_tasks(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, query: web::Query<TaskFilterDto>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let view_id = path.into_inner();
+    let filter = query.into_inner();
+
+    // Perform basic checks on the filter
+    if !filter.basic_checks() {
+        return Ok(HttpResponse::BadRequest().body("Invalid filter criteria"));
+    }
+
+    // List tasks based on the view, filter options, and search criteria
+    let tasks = task_events::list_tasks_or_subtasks(&state, &session_user.user_id, view_id, &filter).await?;
+
+    Ok(HttpResponse::Ok().json(tasks))
 }

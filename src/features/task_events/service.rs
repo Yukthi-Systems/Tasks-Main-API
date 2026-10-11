@@ -1,4 +1,4 @@
-use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto};
+use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto, TaskFilterDto};
 use crate::features::task_views::{TaskTag, TaskStatus, get_task_view_permission};
 use crate::cache::{get_redis_cache, set_redis_cache, delete_redis_cache};
 use super::model::{RecurringTask, TaskOwnershipInfo, TaskInfo};
@@ -282,6 +282,14 @@ pub async fn delete_task(state: &AppState, session_user_id: &Uuid, view_id: i64,
 
 /// Get a task along with its assignees by the session user and the specified view ID and task ID
 pub async fn get_task_and_assignees(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64) -> ServiceResult<TaskInfo> {
+    // Fetch the task information for the task being deleted
+    let task_ownership_info = get_task_ownership_info(&state, task_id).await?;
+
+    // Check if the task can be viewed by the user based on its Ownership
+    if !task_ownership_info.can_create(session_user_id) {
+        return Err(ServiceError::Forbidden("You do not have permission to view this task based on its ownership".into()));
+    }
+
     // Get the task view permission for the user and view ID
     let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
 
@@ -313,4 +321,43 @@ pub async fn get_task_and_assignees(state: &AppState, session_user_id: &Uuid, vi
     }
 
     Ok(task_info)
+}
+
+
+/// List tasks based on the view, filter options, and search criteria
+pub async fn list_tasks_or_subtasks(state: &AppState, session_user_id: &Uuid, view_id: i64, filter: &TaskFilterDto) -> ServiceResult<Vec<TaskInfo>> {
+    // Get the task view permission for the user and view ID
+    let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
+
+    // Apply additional filtering based on the user's task view permission
+    // This includes checking the allowed tags and statuses
+    let is_sub_task_allowed = filter.parent_task_id.is_none() || task_view_permission.show_subtasks;
+    let can_search_tasks =
+        is_sub_task_allowed
+        && task_view_permission.check_all_statuses(&filter.any_of_task_status)
+        && task_view_permission.check_all_tags(&filter.any_of_task_tag);
+
+    // Throw an error if the user is not allowed to search tasks
+    if !can_search_tasks {
+        return Err(ServiceError::Forbidden("You do not have permission to search tasks based on the specified filter criteria".into()));
+    }
+
+    let list_of_tasks: Vec<TaskInfo>;
+
+    if filter.parent_task_id.is_some() {
+        // If a parent task ID is specified, check the user's permission to view subtasks
+        let parent_task_id = filter.parent_task_id.unwrap();
+        let task_ownership_info = get_task_ownership_info(&state, parent_task_id).await?;
+
+        // Check if the user has permission to view subtasks
+        if !task_ownership_info.can_create(&session_user_id) {
+            return Err(ServiceError::Forbidden("You do not have permission to view subtasks of this task".into()));
+        }
+
+        list_of_tasks = repository::get_child_tasks(&state.pg_pool, parent_task_id, &filter).await?;
+    } else {
+        list_of_tasks = repository::get_all_root_tasks(&state.pg_pool, &task_view_permission.owner_id, &filter).await?;
+    }
+
+    Ok(list_of_tasks)
 }

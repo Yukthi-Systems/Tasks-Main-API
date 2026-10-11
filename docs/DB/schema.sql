@@ -194,3 +194,17 @@ CREATE TABLE shared_views (
 -- Indexes for performance optimization
 CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
 CREATE INDEX idx_sessions_sso_token ON sessions(sso_token);
+
+-- Child task listing + chronological cursor pagination
+CREATE INDEX idx_tasks_parent_start_id
+ON tasks (parent_task_id, start_at, task_id);
+
+-- Root task listing + chronological cursor pagination
+CREATE INDEX idx_tasks_owner_root_start_id
+ON tasks (owner_id, start_at, task_id)
+WHERE parent_task_id IS NULL;
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX idx_tasks_title_trgm
+ON tasks USING GIN (title gin_trgm_ops);
