@@ -137,9 +137,9 @@ pub async fn create_task(state: &AppState, session_user_id: &Uuid, view_id: i64,
     let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
 
     // See if the user has the necessary permissions to create tasks
-    let is_recurring_task_allowed = new_task.parent_task_id.is_none() || task_view_permission.show_recurring;
+    let is_sub_task_allowed = new_task.parent_task_id.is_none() || task_view_permission.show_subtasks;
     let can_create_task =
-        is_recurring_task_allowed
+        is_sub_task_allowed
         && task_view_permission.can_create
         && task_view_permission.check_tag(&new_task.task_tag)
         && task_view_permission.check_status(&new_task.task_status);
@@ -182,10 +182,44 @@ pub async fn create_task(state: &AppState, session_user_id: &Uuid, view_id: i64,
 
 
 /// Update an existing task by the session user and the specified view ID and task ID
-pub async fn update_task(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, updated_task: &UpdateTaskDto) -> ServiceResult<()> {
+pub async fn update_task(state: &AppState, session_user_id: &Uuid, view_id: i64, updated_task: &UpdateTaskDto) -> ServiceResult<()> {
     // Get the task view permission for the user and view ID
     let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
 
+    // See if the user has the necessary permissions to create tasks
+    let can_create_task =
+        task_view_permission.can_edit
+        && task_view_permission.check_tag(&updated_task.task_tag)
+        && task_view_permission.check_status(&updated_task.task_status);
+
+    // If the user cannot create the task, return a forbidden error
+    if !can_create_task {
+        return Err(ServiceError::Forbidden("You do not have permission to update tasks in this view with the specified tag or status".into()));
+    }
+
+    // Fetch the task information for the task being updated
+    let task_ownership_info = get_task_ownership_info(&state, updated_task.task_id).await?;
+
+    // If the task is not a root task, ensure the user has permission to update it
+    if !task_ownership_info.is_root_task {
+        if !task_view_permission.show_subtasks {
+            return Err(ServiceError::Forbidden("You do not have permission to update sub-tasks".into()));
+        }
+    }
+
+    // Check if the task view user can edit the task
+    if !task_ownership_info.can_edit(&task_view_permission.owner_id) {
+        // Either the user is not the owner of the task or is not the creator of the task
+        return Err(ServiceError::Forbidden("You do not have permission to edit this task".into()));
+    }
+
+    // Since all necessary checks have passed, proceed to update the task
+    let result = repository::update_task(&state.pg_pool, updated_task).await?;
+
+    // Check if the task update was successful
+    if result == 0 {
+        return Err(ServiceError::BadRequest("Failed to update task".into()));
+    }
 
     Ok(())
 }

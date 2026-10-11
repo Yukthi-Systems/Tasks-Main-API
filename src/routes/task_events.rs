@@ -86,14 +86,14 @@ pub async fn create_task(session_user: web::ReqData<SessionUser>, path: web::Pat
 }
 
 
-#[patch("/update/{view_id}/{task_id}")]
-pub async fn update_task(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, i64)>, data: web::Json<UpdateTaskDto>, state: web::Data<AppState>) -> ApiResponse {
+#[patch("/update/{view_id}")]
+pub async fn update_task(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, data: web::Json<UpdateTaskDto>, state: web::Data<AppState>) -> ApiResponse {
     let session_user = session_user.into_inner();
-    let (view_id, task_id) = path.into_inner();
+    let view_id = path.into_inner();
     let task_info = data.into_inner();
 
     // Can update tasks if show_tasks, can_update is true
-    task_events::update_task(&state, &session_user.user_id, view_id, task_id, &task_info).await?;
+    task_events::update_task(&state, &session_user.user_id, view_id, &task_info).await?;
 
     Ok(HttpResponse::Ok().body("Task updated successfully"))
 }

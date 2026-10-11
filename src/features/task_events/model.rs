@@ -24,10 +24,11 @@ pub struct RecurringTask {
 
 #[derive(RowFrom, Serialize, Deserialize)]
 pub struct TaskOwnershipInfo {
-    pub task_id: i64,
-    pub owner_id: Uuid,
-    pub created_by: Option<Uuid>,
-    pub assignee_ids: Vec<Uuid>,
+    task_id: i64,
+    owner_id: Uuid,
+    pub is_root_task: bool,
+    created_by: Option<Uuid>,
+    assignee_ids: Vec<Uuid>,
 }
 
 

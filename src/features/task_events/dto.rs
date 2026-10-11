@@ -47,6 +47,8 @@ pub struct CreateTaskDto {
 
 #[derive(Deserialize)]
 pub struct UpdateTaskDto {
+    pub task_id: i64,
+
     pub title: String,
     pub description: String,
     pub details: serde_json::Value,

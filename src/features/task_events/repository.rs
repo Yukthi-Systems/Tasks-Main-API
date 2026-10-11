@@ -1,4 +1,4 @@
-use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto};
+use super::dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto};
 use super::model::{RecurringTask, TaskOwnershipInfo};
 use crate::features::task_views::TaskTag;
 use deadpool_postgres::Pool as PgPool;
@@ -131,6 +131,7 @@ pub async fn get_task_ownership_info(db_pool: &PgPool, task_id: i64) -> PgResult
                 t.task_id,
                 t.owner_id,
                 t.created_by,
+                t.parent_task_id IS NULL AS is_root_task,
                 COALESCE(
                     (
                         SELECT ARRAY_AGG(ta.assignee_id)
@@ -181,6 +182,40 @@ pub async fn create_new_task(db_pool: &PgPool, owner_id: &Uuid, session_user_id:
                 &new_task.end_at,
                 &new_task.parent_task_id,
                 session_user_id,
+            ],
+        )
+        .await?;
+
+    Ok(result)
+}
+
+
+pub async fn update_task(db_pool: &PgPool, updated_task: &UpdateTaskDto) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            UPDATE tasks
+            SET
+                title = $1,
+                description = $2,
+                details = $3,
+                task_tag = $4,
+                task_status = $5,
+                start_at = $6,
+                end_at = $7
+            WHERE task_id = $8
+            "#,
+            &[
+                &updated_task.title,
+                &updated_task.description,
+                &updated_task.details,
+                &updated_task.task_tag.as_str(),
+                &updated_task.task_status.as_str(),
+                &updated_task.start_at,
+                &updated_task.end_at,
+                &updated_task.task_id,
             ],
         )
         .await?;
