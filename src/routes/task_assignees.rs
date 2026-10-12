@@ -19,7 +19,13 @@ pub async fn assign_user(session_user: web::ReqData<SessionUser>, path: web::Pat
     }
 
     // Create a new task view using the provided information and the session user's ID
-    task_assignees::assign_user(&state, &session_user.user_id, &add_assignee_dto, view_id).await?;
+    task_assignees::assign_user(
+        &state,
+        &session_user.organization_id,
+        &session_user.user_id,
+        &add_assignee_dto,
+        view_id
+    ).await?;
 
     Ok(HttpResponse::Created().body("User assigned to task successfully"))
 }

@@ -1,7 +1,7 @@
 mod dto;
 mod model;
 mod service;
-// mod repository;
+mod repository;
 
 
 pub use dto::{AddAssigneeDto};
