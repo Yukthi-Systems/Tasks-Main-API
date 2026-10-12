@@ -126,7 +126,6 @@ async fn main() -> std::io::Result<()> {
                 .wrap(from_fn(middleware::user_session::auth_check))
                 .service(task_assignees::assign_user)
                 .service(task_assignees::remove_user)
-                // .service(task_assignees::list_assignees)  // List all assignees for a task
             )
     })
     .bind(("0.0.0.0", 8686))?
