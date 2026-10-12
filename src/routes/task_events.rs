@@ -122,11 +122,11 @@ pub async fn get_task(session_user: web::ReqData<SessionUser>, path: web::Path<(
 }
 
 
-#[get("/list/{view_id}")]
-pub async fn list_tasks(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, query: web::Query<TaskFilterDto>, state: web::Data<AppState>) -> ApiResponse {
+#[post("/list/{view_id}")]
+pub async fn list_tasks(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, data: web::Json<TaskFilterDto>, state: web::Data<AppState>) -> ApiResponse {
     let session_user = session_user.into_inner();
     let view_id = path.into_inner();
-    let filter = query.into_inner();
+    let filter = data.into_inner();
 
     // Perform basic checks on the filter
     if !filter.basic_checks() {

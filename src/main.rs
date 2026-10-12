@@ -1,4 +1,4 @@
-use routes::{health, auth, user, task_views, task_events};
+use routes::{health, auth, user, task_views, task_events, task_assignees};
 use actix_web::web::scope as actix_scope;
 use actix_web::middleware::from_fn;
 use actix_web::{App, HttpServer};
@@ -121,13 +121,13 @@ async fn main() -> std::io::Result<()> {
             //     .service(task_comments::delete_comment)  // Only self-owned
             //     .service(task_comments::react_to_comment)  // Any user can react to any visible comment
             // )
-            // .service(
-            //     actix_scope("/assignees")   // Should give ViewID + TaskID every time
-            //     .wrap(from_fn(middleware::user_session::auth_check))
-            //     .service(task_assignees::assign_user)  // Any-one can assign a user to a task (If they are the owner or one of the assignees)
-            //     .service(task_assignees::remove_user)  // Only self-owned task can remove an assignee (Self can not exit)
-            //     .service(task_assignees::list_assignees)  // List all assignees for a task
-            // )
+            .service(
+                actix_scope("/assignees")   // Should give ViewID + TaskID every time
+                .wrap(from_fn(middleware::user_session::auth_check))
+                .service(task_assignees::assign_user)
+                // .service(task_assignees::remove_user)  // Only self-owned task can remove an assignee (Self can not exit)
+                // .service(task_assignees::list_assignees)  // List all assignees for a task
+            )
     })
     .bind(("0.0.0.0", 8686))?
     .workers(env_var("API_WORKERS_COUNT").unwrap_or("4".to_string()).parse().unwrap())

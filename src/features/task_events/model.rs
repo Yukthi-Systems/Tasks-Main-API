@@ -1,3 +1,4 @@
+use crate::features::task_views::{TaskStatus, TaskTag};
 use serde::{Deserialize, Serialize};
 use pg_row_derive::RowFrom;
 use uuid::Uuid;
@@ -45,8 +46,8 @@ pub struct TaskInfo {
     pub description: String,
     pub details: serde_json::Value,
 
-    pub task_status: String,
-    pub task_tag: String,
+    pub task_status: TaskStatus,
+    pub task_tag: TaskTag,
 
     pub start_at: ChronoUtc,
     pub end_at: ChronoUtc,

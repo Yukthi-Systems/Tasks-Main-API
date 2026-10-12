@@ -135,14 +135,4 @@ impl TaskFilterDto {
         // All basic checks must pass
         self.has_task_status_filter() && self.has_task_tag_filter() && self.has_valid_time_filter() && self.has_valid_title_filter() && self.has_valid_cursor()
     }
-
-    /// Convert the filter into a format suitable for database queries
-    pub fn any_of_task_status_as_str(&self) -> Vec<&str> {
-        self.any_of_task_status.iter().map(|s| s.as_str()).collect()
-    }
-
-    /// Convert the task tags filter into a format suitable for database queries
-    pub fn any_of_task_tag_as_str(&self) -> Vec<&str> {
-        self.any_of_task_tag.iter().map(|s| s.as_str()).collect()
-    }
 }

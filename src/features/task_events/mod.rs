@@ -5,7 +5,9 @@ mod repository;
 
 
 pub use dto::{CreateRecurringTaskDto, UpdateRecurringTaskDto, CreateTaskDto, UpdateTaskDto, TaskFilterDto};
+pub use repository::get_task as get_task_info;
 pub use service::{
+    get_task_ownership_info,
     get_one_recurring_task,
     get_task_and_assignees,
     list_tasks_or_subtasks,

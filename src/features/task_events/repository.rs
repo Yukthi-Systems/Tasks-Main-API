@@ -29,7 +29,7 @@ pub async fn create_recurring_task(db_pool: &PgPool, new_info: &CreateRecurringT
                 &new_info.description,
                 &new_info.details,
                 &new_info.rrule,
-                &new_info.task_tag.as_str(),
+                &new_info.task_tag,
             ],
         )
         .await?;
@@ -48,7 +48,7 @@ pub async fn list_recurring_tasks(db_pool: &PgPool, owner_id: &Uuid, task_tags: 
             FROM recurring_tasks
             WHERE owner_id = $1 AND task_tag = ANY($2)
             "#,
-            &[owner_id, &task_tags.iter().map(|t| t.as_str()).collect::<Vec<_>>()],
+            &[owner_id, &task_tags],
         )
         .await?;
 
@@ -66,7 +66,7 @@ pub async fn get_one_recurring_task(db_pool: &PgPool, owner_id: &Uuid, recurring
             FROM recurring_tasks
             WHERE owner_id = $1 AND recurring_task_id = $2 AND task_tag = $3
             "#,
-            &[owner_id, &recurring_task_id, &task_tag.as_str()],
+            &[owner_id, &recurring_task_id, &task_tag],
         )
         .await?;
 
@@ -93,7 +93,7 @@ pub async fn update_recurring_task(db_pool: &PgPool, owner_id: &Uuid, new_info: 
                 &new_info.description,
                 &new_info.details,
                 &new_info.rrule,
-                &new_info.task_tag.as_str(),
+                &new_info.task_tag,
                 owner_id,
                 &new_info.recurring_task_id,
             ],
@@ -113,7 +113,7 @@ pub async fn delete_recurring_task(db_pool: &PgPool, owner_id: &Uuid, recurring_
             DELETE FROM recurring_tasks
             WHERE owner_id = $1 AND recurring_task_id = $2 AND task_tag = $3
             "#,
-            &[owner_id, &recurring_task_id, &task_tag.as_str()],
+            &[owner_id, &recurring_task_id, &task_tag],
         )
         .await?;
 
@@ -169,15 +169,15 @@ pub async fn create_new_task(db_pool: &PgPool, owner_id: &Uuid, session_user_id:
                 parent_task_id,
                 created_by
             )
-            VALUES ($1, $2, $3, $4, $5::task_tag, $6::task_status, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             "#,
             &[
                 owner_id,
                 &new_task.title,
                 &new_task.description,
                 &new_task.details,
-                &new_task.task_tag.as_str(),
-                &new_task.task_status.as_str(),
+                &new_task.task_tag,
+                &new_task.task_status,
                 &new_task.start_at,
                 &new_task.end_at,
                 &new_task.parent_task_id,
@@ -212,8 +212,8 @@ pub async fn update_task(db_pool: &PgPool, updated_task: &UpdateTaskDto) -> PgRe
                 &updated_task.title,
                 &updated_task.description,
                 &updated_task.details,
-                &updated_task.task_tag.as_str(),
-                &updated_task.task_status.as_str(),
+                &updated_task.task_tag,
+                &updated_task.task_status,
                 &updated_task.start_at,
                 &updated_task.end_at,
                 &updated_task.task_id,
@@ -320,8 +320,8 @@ pub async fn get_child_tasks(db_pool: &PgPool, parent_task_id: i64, filter: &Tas
             &[
                 &parent_task_id,
                 &filter.title_contains,
-                &filter.any_of_task_status_as_str(),
-                &filter.any_of_task_tag_as_str(),
+                &filter.any_of_task_status,
+                &filter.any_of_task_tag,
                 &filter.start_at,
                 &filter.end_at,
                 &filter.cursor_start_at,
@@ -378,8 +378,8 @@ pub async fn get_all_root_tasks(db_pool: &PgPool, owner_id: &Uuid, filter: &Task
             &[
                 &owner_id,
                 &filter.title_contains,
-                &filter.any_of_task_status_as_str(),
-                &filter.any_of_task_tag_as_str(),
+                &filter.any_of_task_status,
+                &filter.any_of_task_tag,
                 &filter.start_at,
                 &filter.end_at,
                 &filter.cursor_start_at,

@@ -1,3 +1,4 @@
+use postgres_types::{ToSql, FromSql};
 use serde::{Deserialize, Serialize};
 use pg_row_derive::RowFrom;
 use uuid::Uuid;
@@ -6,23 +7,47 @@ use uuid::Uuid;
 type ChronoUtc = chrono::DateTime<chrono::Utc>;
 
 
-#[derive(Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, ToSql, FromSql)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[postgres(name = "task_status")]
 pub enum TaskStatus {
-    Pending,
-    InProgress,
-    Completed,
-    Cancelled,
-    OnHold,
+    #[postgres(name = "PENDING")]
+    Pending,    // Task is pending and yet to be started
+
+    #[postgres(name = "IN_PROGRESS")]
+    InProgress, // Task is currently in progress
+
+    #[postgres(name = "COMPLETED")]
+    Completed,  // Task has been completed
+
+    #[postgres(name = "CANCELLED")]
+    Cancelled,  // Task has been cancelled
+
+    #[postgres(name = "ON_HOLD")]
+    OnHold,     // Task is on hold
 }
 
 
-#[derive(Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, ToSql, FromSql)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[postgres(name = "task_tag")]
 pub enum TaskTag {
+    #[postgres(name = "WORK")]
     Work,       // Work-related tasks
+
+    #[postgres(name = "IMPORTANT")]
     Important,  // High significance
+
+    #[postgres(name = "URGENT")]
     Urgent,     // Requires prompt attention
+
+    #[postgres(name = "OPTIONAL")]
     Optional,   // Can be skipped
+
+    #[postgres(name = "PERSONAL")]
     Personal,   // Personal tasks
+
+    #[postgres(name = "OTHER")]
     Other,      // Anything else
 }
 
@@ -32,8 +57,8 @@ pub struct TaskViewPermission {
     pub view_id: i64,
     pub owner_id: Uuid,
 
-    pub status_filter: Vec<String>,
-    pub task_tag_filter: Vec<String>,
+    pub status_filter: Vec<TaskStatus>,
+    pub task_tag_filter: Vec<TaskTag>,
 
     pub show_recurring: bool,
     pub show_comments: bool,
@@ -67,56 +92,6 @@ pub struct SharedTaskView {
 // ------- Implementations ------- //
 
 
-impl TaskStatus {
-    pub fn as_str(&self) -> &str {
-        match self {
-            TaskStatus::Pending => "PENDING",
-            TaskStatus::InProgress => "IN_PROGRESS",
-            TaskStatus::Completed => "COMPLETED",
-            TaskStatus::Cancelled => "CANCELLED",
-            TaskStatus::OnHold => "ON_HOLD",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Option<TaskStatus> {
-        match s {
-            "PENDING" => Some(TaskStatus::Pending),
-            "IN_PROGRESS" => Some(TaskStatus::InProgress),
-            "COMPLETED" => Some(TaskStatus::Completed),
-            "CANCELLED" => Some(TaskStatus::Cancelled),
-            "ON_HOLD" => Some(TaskStatus::OnHold),
-            _ => None,
-        }
-    }
-}
-
-
-impl TaskTag {
-    pub fn as_str(&self) -> &str {
-        match self {
-            TaskTag::Work => "WORK",
-            TaskTag::Important => "IMPORTANT",
-            TaskTag::Urgent => "URGENT",
-            TaskTag::Optional => "OPTIONAL",
-            TaskTag::Personal => "PERSONAL",
-            TaskTag::Other => "OTHER",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Option<TaskTag> {
-        match s {
-            "WORK" => Some(TaskTag::Work),
-            "IMPORTANT" => Some(TaskTag::Important),
-            "URGENT" => Some(TaskTag::Urgent),
-            "OPTIONAL" => Some(TaskTag::Optional),
-            "PERSONAL" => Some(TaskTag::Personal),
-            "OTHER" => Some(TaskTag::Other),
-            _ => None,
-        }
-    }
-}
-
-
 impl TaskViewPermission {
     pub fn check_status(&self, status: &TaskStatus) -> bool {
         // If it is empty, it means all statuses are allowed
@@ -124,7 +99,7 @@ impl TaskViewPermission {
             return true;
         }
 
-        self.status_filter.contains(&status.as_str().to_string())
+        self.status_filter.contains(status)
     }
 
     /// Check if the task view permission allows the specified task tag
@@ -134,7 +109,7 @@ impl TaskViewPermission {
             return true;
         }
 
-        self.task_tag_filter.contains(&tag.as_str().to_string())
+        self.task_tag_filter.contains(tag)
     }
 
     /// Check if all the specified task tags are allowed by the task view permission

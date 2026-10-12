@@ -27,8 +27,8 @@ pub async fn create_task_view(db_pool: &PgPool, user_id: &Uuid, new_info: &Creat
             )
             VALUES (
                 $1, $2, $3, $4,
-                ARRAY(SELECT unnest($5::text[])::task_status),
-                ARRAY(SELECT unnest($6::text[])::task_tag),
+                ARRAY(SELECT unnest($5)),
+                ARRAY(SELECT unnest($6)),
                 $7, $8, $9, $10
             )
             "#,
@@ -37,8 +37,8 @@ pub async fn create_task_view(db_pool: &PgPool, user_id: &Uuid, new_info: &Creat
             &new_info.view_name,
             &new_info.description,
             &new_info.ui_info,
-            &new_info.status_filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
-            &new_info.task_tag_filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
+            &new_info.status_filter,
+            &new_info.task_tag_filter,
             &new_info.show_recurring,
             &new_info.show_comments,
             &new_info.show_subtasks,
@@ -58,7 +58,7 @@ pub async fn list_task_views(db_pool: &PgPool, user_id: &Uuid) -> PgResult<Vec<T
         .query(
             r#"
             SELECT view_id, owner_id, view_name, description,
-            ui_info, status_filter::TEXT[], task_tag_filter::TEXT[], show_recurring, show_comments, show_subtasks, show_assigned
+            ui_info, status_filter, task_tag_filter, show_recurring, show_comments, show_subtasks, show_assigned
             FROM task_views
             WHERE owner_id = $1
             "#,
@@ -77,7 +77,7 @@ pub async fn list_my_shared_views(db_pool: &PgPool, user_id: &Uuid) -> PgResult<
         .query(
             r#"
             SELECT tv.view_id, tv.owner_id, tv.view_name, tv.description,
-            tv.ui_info, tv.status_filter::TEXT[], tv.task_tag_filter::TEXT[], tv.show_recurring, tv.show_comments, tv.show_subtasks, tv.show_assigned
+            tv.ui_info, tv.status_filter, tv.task_tag_filter, tv.show_recurring, tv.show_comments, tv.show_subtasks, tv.show_assigned
             FROM task_views tv
             INNER JOIN shared_views sv
                 ON sv.view_id = tv.view_id
@@ -98,7 +98,7 @@ pub async fn get_task_view(db_pool: &PgPool, user_id: &Uuid, view_id: i64) -> Pg
         .query_opt(
             r#"
             SELECT view_id, owner_id, view_name, description,
-            ui_info, status_filter::TEXT[], task_tag_filter::TEXT[], show_recurring, show_comments, show_subtasks, show_assigned
+            ui_info, status_filter, task_tag_filter, show_recurring, show_comments, show_subtasks, show_assigned
             FROM task_views
             WHERE owner_id = $1 AND view_id = $2
             "#,
@@ -120,8 +120,8 @@ pub async fn check_task_view_ownership(db_pool: &PgPool, user_id: &Uuid, view_id
             SELECT
                 tv.view_id,
                 tv.owner_id,
-                tv.status_filter::TEXT[] AS status_filter,
-                tv.task_tag_filter::TEXT[] AS task_tag_filter,
+                tv.status_filter AS status_filter,
+                tv.task_tag_filter AS task_tag_filter,
                 tv.show_recurring,
                 tv.show_comments,
                 tv.show_subtasks,
@@ -176,8 +176,8 @@ pub async fn update_task_view(db_pool: &PgPool, user_id: &Uuid, new_info: &Updat
                 &new_info.view_name,
                 &new_info.description,
                 &new_info.ui_info,
-                &new_info.status_filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
-                &new_info.task_tag_filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
+                &new_info.status_filter,
+                &new_info.task_tag_filter,
                 &new_info.show_recurring,
                 &new_info.show_comments,
                 &new_info.show_subtasks,

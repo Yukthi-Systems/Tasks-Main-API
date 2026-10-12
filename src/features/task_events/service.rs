@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 
 /// Get the ownership information of a task
-async fn get_task_ownership_info(state: &AppState, task_id: i64) -> ServiceResult<TaskOwnershipInfo> {
+pub async fn get_task_ownership_info(state: &AppState, task_id: i64) -> ServiceResult<TaskOwnershipInfo> {
     // Check if the ownership information of the task is cached in Redis
     let cache_key = format!("task:ownership:{}", task_id);
     let task_ownership_info: Option<TaskOwnershipInfo> = get_redis_cache(&state.redis_cache, &cache_key).await?;
@@ -238,12 +238,10 @@ pub async fn delete_task(state: &AppState, session_user_id: &Uuid, view_id: i64,
     let task_info = task_info.unwrap();
 
     // Check the Tag and Status for additional permission checks
-    let task_tag = &TaskTag::from_str(&task_info.task_tag).unwrap();
-    let task_status = &TaskStatus::from_str(&task_info.task_status).unwrap();
     let can_delete_task =
         task_view_permission.can_delete
-        && task_view_permission.check_tag(task_tag)
-        && task_view_permission.check_status(task_status);
+        && task_view_permission.check_tag(&task_info.task_tag)
+        && task_view_permission.check_status(&task_info.task_status);
     if !can_delete_task {
         return Err(ServiceError::Forbidden("You do not have permission to delete this task based on its tag or status or your view permissions".into()));
     }
@@ -300,10 +298,6 @@ pub async fn get_task_and_assignees(state: &AppState, session_user_id: &Uuid, vi
     }
     let task_info = task_info.unwrap();
 
-    // Check the Tag and Status for additional permission checks
-    let task_tag = &TaskTag::from_str(&task_info.task_tag).unwrap();
-    let task_status = &TaskStatus::from_str(&task_info.task_status).unwrap();
-
     // If it is a sub-task, check if the user has permission to view subtasks
     let can_view_subtask = if task_info.parent_task_id.is_some() {
         task_view_permission.show_subtasks
@@ -314,8 +308,8 @@ pub async fn get_task_and_assignees(state: &AppState, session_user_id: &Uuid, vi
     // Determine if the user can view the task based on subtask permission, tag, and status
     let can_view_task =
         can_view_subtask
-        && task_view_permission.check_tag(task_tag)
-        && task_view_permission.check_status(task_status);
+        && task_view_permission.check_tag(&task_info.task_tag)
+        && task_view_permission.check_status(&task_info.task_status);
     if !can_view_task {
         return Err(ServiceError::Forbidden("You do not have permission to view this task based on its tag or status".into()));
     }
