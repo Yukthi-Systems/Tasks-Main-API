@@ -1,5 +1,5 @@
-use crate::features::task_assignees::{self, AddAssigneeDto};
-use actix_web::{HttpResponse, delete, get, patch, post, web};
+use crate::features::task_assignees::{self, AddAssigneeDto, RemoveAssigneeDto};
+use actix_web::{HttpResponse, delete, get, post, web};
 use crate::features::users::SessionUser;
 use crate::errors::ApiResponse;
 use crate::state::AppState;
@@ -28,4 +28,28 @@ pub async fn assign_user(session_user: web::ReqData<SessionUser>, path: web::Pat
     ).await?;
 
     Ok(HttpResponse::Created().body("User assigned to task successfully"))
+}
+
+
+#[delete("/remove/{view_id}")]
+pub async fn remove_user(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, body: web::Json<RemoveAssigneeDto>, state: web::Data<AppState>) -> ApiResponse {
+    // Get SessionUser from request data
+    let session_user = session_user.into_inner();
+    let remove_assignee_dto = body.into_inner();
+    let view_id = path.into_inner();
+
+    // Only the owner or one of the assignees can remove a user from a task and can not remove themselves
+    if !remove_assignee_dto.validate(&session_user.user_id) {
+        return Ok(HttpResponse::Forbidden().body("You cannot remove yourself from this task"));
+    }
+
+    // Create a new task view using the provided information and the session user's ID
+    task_assignees::remove_user(
+        &state,
+        &session_user.user_id,
+        &remove_assignee_dto,
+        view_id
+    ).await?;
+
+    Ok(HttpResponse::Ok().body("User removed from task successfully"))
 }

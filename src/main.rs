@@ -122,10 +122,10 @@ async fn main() -> std::io::Result<()> {
             //     .service(task_comments::react_to_comment)  // Any user can react to any visible comment
             // )
             .service(
-                actix_scope("/assignees")   // Should give ViewID + TaskID every time
+                actix_scope("/assignees")
                 .wrap(from_fn(middleware::user_session::auth_check))
                 .service(task_assignees::assign_user)
-                // .service(task_assignees::remove_user)  // Only self-owned task can remove an assignee (Self can not exit)
+                .service(task_assignees::remove_user)
                 // .service(task_assignees::list_assignees)  // List all assignees for a task
             )
     })

@@ -1,5 +1,5 @@
+use super::dto::{AddAssigneeDto, RemoveAssigneeDto};
 use deadpool_postgres::Pool as PgPool;
-use super::dto::{AddAssigneeDto};
 use crate::errors::PgResult;
 use uuid::Uuid;
 
@@ -34,6 +34,27 @@ pub async fn assign_user_to_task(db_pool: &PgPool, assignee_info: &AddAssigneeDt
                 &assignee_info.task_id,
                 &assignee_info.assignee_id,
                 &org_id,
+            ],
+        )
+        .await?;
+
+    Ok(result)
+}
+
+
+pub async fn remove_user_from_task(db_pool: &PgPool, assignee_info: &RemoveAssigneeDto) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            DELETE FROM task_assignees
+            WHERE task_id = $1
+              AND assignee_id = $2
+            "#,
+            &[
+                &assignee_info.task_id,
+                &assignee_info.assignee_id,
             ],
         )
         .await?;
