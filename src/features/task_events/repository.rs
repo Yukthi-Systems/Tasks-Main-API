@@ -169,7 +169,7 @@ pub async fn create_new_task(db_pool: &PgPool, owner_id: &Uuid, session_user_id:
                 parent_task_id,
                 created_by
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5::task_tag, $6::task_status, $7, $8, $9, $10)
             "#,
             &[
                 owner_id,
