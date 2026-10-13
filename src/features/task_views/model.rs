@@ -8,46 +8,26 @@ type ChronoUtc = chrono::DateTime<chrono::Utc>;
 
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, ToSql, FromSql)]
+#[postgres(name = "task_status", rename_all = "SCREAMING_SNAKE_CASE")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[postgres(name = "task_status")]
 pub enum TaskStatus {
-    #[postgres(name = "PENDING")]
     Pending,    // Task is pending and yet to be started
-
-    #[postgres(name = "IN_PROGRESS")]
     InProgress, // Task is currently in progress
-
-    #[postgres(name = "COMPLETED")]
     Completed,  // Task has been completed
-
-    #[postgres(name = "CANCELLED")]
     Cancelled,  // Task has been cancelled
-
-    #[postgres(name = "ON_HOLD")]
     OnHold,     // Task is on hold
 }
 
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, ToSql, FromSql)]
+#[postgres(name = "task_tag", rename_all = "SCREAMING_SNAKE_CASE")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[postgres(name = "task_tag")]
 pub enum TaskTag {
-    #[postgres(name = "WORK")]
     Work,       // Work-related tasks
-
-    #[postgres(name = "IMPORTANT")]
     Important,  // High significance
-
-    #[postgres(name = "URGENT")]
     Urgent,     // Requires prompt attention
-
-    #[postgres(name = "OPTIONAL")]
     Optional,   // Can be skipped
-
-    #[postgres(name = "PERSONAL")]
     Personal,   // Personal tasks
-
-    #[postgres(name = "OTHER")]
     Other,      // Anything else
 }
 
