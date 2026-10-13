@@ -26,10 +26,7 @@ pub async fn create_task_view(db_pool: &PgPool, user_id: &Uuid, new_info: &Creat
                 show_assigned
             )
             VALUES (
-                $1, $2, $3, $4,
-                ARRAY(SELECT unnest($5)),
-                ARRAY(SELECT unnest($6)),
-                $7, $8, $9, $10
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
             )
             "#,
         &[
