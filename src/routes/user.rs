@@ -5,6 +5,11 @@ use crate::state::AppState;
 use uuid::Uuid;
 
 
+#[derive(serde::Deserialize)]
+pub struct SearchQuery {
+    pub email: String,
+}
+
 
 #[patch("/update-fcm-token")]
 pub async fn update_fcm_token(session_user: web::ReqData<SessionUser>, data: web::Json<String>, state: web::Data<AppState>) -> ApiResponse {
@@ -73,12 +78,12 @@ pub async fn update_user_info(session_user: web::ReqData<SessionUser>, path: web
 
 
 #[get("/search")]
-pub async fn email_dropdown_search(session_user: web::ReqData<SessionUser>, query: web::Query<String>, state: web::Data<AppState>) -> ApiResponse {
+pub async fn email_dropdown_search(session_user: web::ReqData<SessionUser>, query: web::Query<SearchQuery>, state: web::Data<AppState>) -> ApiResponse {
     let session_user = session_user.into_inner();
     let search_query = query.into_inner();
 
     // Search for users by email within the same organization
-    let results = users::search_email(&state.pg_pool, &session_user.organization_id, &search_query).await?;
+    let results = users::search_email(&state.pg_pool, &session_user.organization_id, &search_query.email).await?;
 
     Ok(HttpResponse::Ok().json(results))
 }
