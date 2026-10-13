@@ -61,8 +61,8 @@ pub struct TaskViewDbDto {
     pub description: String,
 
     pub ui_info: serde_json::Value,
-    pub status_filter: Vec<String>,
-    pub task_tag_filter: Vec<String>,
+    pub status_filter: Vec<TaskStatus>,
+    pub task_tag_filter: Vec<TaskTag>,
 
     pub show_recurring: bool,
     pub show_comments: bool,
