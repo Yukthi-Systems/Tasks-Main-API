@@ -249,7 +249,12 @@ pub async fn get_task(db_pool: &PgPool, task_id: i64) -> PgResult<Option<TaskInf
                     SELECT ta.assignee_id
                     FROM task_assignees ta
                     WHERE ta.task_id = t.task_id
-                ) AS assignee_ids
+                ) AS assignee_ids,
+                (
+                    SELECT COUNT(*)
+                    FROM tasks sub
+                    WHERE sub.parent_task_id = t.task_id
+                ) AS total_sub_tasks
             FROM tasks t
             WHERE t.task_id = $1
             "#,
@@ -302,7 +307,12 @@ pub async fn get_child_tasks(db_pool: &PgPool, parent_task_id: i64, filter: &Tas
                     SELECT ta.assignee_id
                     FROM task_assignees ta
                     WHERE ta.task_id = t.task_id
-                ) AS assignee_ids
+                ) AS assignee_ids,
+                (
+                    SELECT COUNT(*)
+                    FROM tasks sub
+                    WHERE sub.parent_task_id = t.task_id
+                ) AS total_sub_tasks
             FROM tasks t
             WHERE t.parent_task_id = $1
             AND ($2::TEXT IS NULL OR t.title ILIKE '%' || $2 || '%')
@@ -359,7 +369,12 @@ pub async fn get_all_root_tasks(db_pool: &PgPool, owner_id: &Uuid, filter: &Task
                     SELECT ta.assignee_id
                     FROM task_assignees ta
                     WHERE ta.task_id = t.task_id
-                ) AS assignee_ids
+                ) AS assignee_ids,
+                (
+                    SELECT COUNT(*)
+                    FROM tasks sub
+                    WHERE sub.parent_task_id = t.task_id
+                ) AS total_sub_tasks
             FROM tasks t
             WHERE t.owner_id = $1
             AND t.parent_task_id IS NULL

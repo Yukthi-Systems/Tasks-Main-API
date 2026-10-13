@@ -37,6 +37,7 @@ pub struct TaskOwnershipInfo {
 pub struct TaskInfo {
     pub task_id: i64,
     pub parent_task_id: Option<i64>,
+    pub total_sub_tasks: i64,
 
     pub owner_id: Uuid,
     pub created_by: Option<Uuid>,
