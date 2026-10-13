@@ -23,11 +23,11 @@ pub async fn create_recurring_task(session_user: web::ReqData<SessionUser>, path
 }
 
 
-#[get("/list/{view_id}")]
-pub async fn list_recurring_tasks(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, query: web::Query<Vec<TaskTag>>, state: web::Data<AppState>) -> ApiResponse {
+#[post("/list/{view_id}")]
+pub async fn list_recurring_tasks(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, data: web::Json<Vec<TaskTag>>, state: web::Data<AppState>) -> ApiResponse {
     let session_user = session_user.into_inner();
     let view_id = path.into_inner();
-    let task_tags = query.into_inner();
+    let task_tags = data.into_inner();
 
     // List recurring tasks based on the view (There are no Sub-Tasks)
     // Has the show_recurring permission enabled for this view
