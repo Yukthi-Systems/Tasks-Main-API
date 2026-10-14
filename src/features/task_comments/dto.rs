@@ -5,8 +5,8 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 pub struct ListCommentsDto {
     pub created_at_ascending: bool,
-    pub offset: i32,
-    pub limit: i32,
+    pub offset: i64,
+    pub limit: i64,
 }
 
 
