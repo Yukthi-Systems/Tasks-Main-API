@@ -1,6 +1,7 @@
-use super::dto::{AddAssigneeDto, RemoveAssigneeDto};
 use deadpool_postgres::Pool as PgPool;
 use serde_json::Value as JsonValue;
+use super::dto::ListCommentsDto;
+use super::model::TaskComment;
 use crate::errors::PgResult;
 use uuid::Uuid;
 
@@ -98,7 +99,8 @@ pub async fn update_comment(db_pool: &PgPool, session_user_id: &Uuid, task_id: &
         .execute(
             r#"
             UPDATE task_comments
-            SET content = $4
+            SET content = $4,
+                updated_at = NOW()
             WHERE task_id = $1
               AND comment_id = $2
               AND author_id = $3
@@ -113,4 +115,69 @@ pub async fn update_comment(db_pool: &PgPool, session_user_id: &Uuid, task_id: &
         .await?;
 
     Ok(result)
+}
+
+
+pub async fn list_comments(db_pool: &PgPool, task_id: &i64, list_query: ListCommentsDto) -> PgResult<Vec<TaskComment>> {
+    let client = db_pool.get().await?;
+
+    let rows = client
+        .query(
+            r#"
+            SELECT
+                comment_id,
+                task_id,
+                author_id,
+                content,
+                reactions,
+                created_at,
+                updated_at
+            FROM task_comments
+            WHERE task_id = $1
+            ORDER BY
+                CASE WHEN $2 THEN created_at END ASC,
+                CASE WHEN NOT $2 THEN created_at END DESC,
+                comment_id ASC
+            LIMIT $3
+            OFFSET $4
+            "#,
+            &[
+                task_id,
+                &list_query.created_at_ascending,
+                &list_query.limit,
+                &list_query.offset,
+            ],
+        )
+        .await?;
+
+    Ok(TaskComment::from_rows(rows))
+}
+
+
+pub async fn get_comment(db_pool: &PgPool, task_id: &i64, comment_id: &i64) -> PgResult<Option<TaskComment>> {
+    let client = db_pool.get().await?;
+
+    let row = client
+        .query_opt(
+            r#"
+            SELECT
+                comment_id,
+                task_id,
+                author_id,
+                content,
+                reactions,
+                created_at,
+                updated_at
+            FROM task_comments
+            WHERE task_id = $1
+              AND comment_id = $2
+            "#,
+            &[
+                task_id,
+                comment_id,
+            ],
+        )
+        .await?;
+
+    Ok(row.map(TaskComment::from))
 }

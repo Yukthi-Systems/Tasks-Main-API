@@ -118,8 +118,8 @@ async fn main() -> std::io::Result<()> {
                 .service(task_comments::create_comment)
                 .service(task_comments::update_comment)
                 .service(task_comments::delete_comment)
-                // .service(task_comments::list_comments)  // List comments based on the view (Anyone)
-                // .service(task_comments::get_comment)    // Fetch just one comment (same as list struct use)
+                .service(task_comments::list_comments)
+                .service(task_comments::get_comment)
             )
             .service(
                 actix_scope("/assignees")

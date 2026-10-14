@@ -1,6 +1,6 @@
 use actix_web::{HttpResponse, delete, get, patch, post, web};
+use crate::features::task_comments::{self, ListCommentsDto};
 use crate::features::users::SessionUser;
-use crate::features::task_comments;
 use crate::errors::ApiResponse;
 use crate::state::AppState;
 
@@ -95,4 +95,39 @@ pub async fn update_comment(session_user: web::ReqData<SessionUser>, path: web::
     }
 
     Ok(HttpResponse::Ok().body("Comment updated successfully"))
+}
+
+
+#[get("/list/{view_id}/{task_id}")]
+pub async fn list_comments(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, i64)>, query: web::Query<ListCommentsDto>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let (view_id, task_id) = path.into_inner();
+    let list_query = query.into_inner();
+
+    let comments = task_comments::list_comments(
+        &state,
+        &session_user.user_id,
+        view_id,
+        task_id,
+        list_query,
+    ).await?;
+
+    Ok(HttpResponse::Ok().json(comments))
+}
+
+
+#[get("/list/{view_id}/{task_id}/{comment_id}")]
+pub async fn get_comment(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, i64, i64)>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let (view_id, task_id, comment_id) = path.into_inner();
+
+    let comment = task_comments::get_comment(
+        &state,
+        &session_user.user_id,
+        view_id,
+        task_id,
+        comment_id,
+    ).await?;
+
+    Ok(HttpResponse::Ok().json(comment))
 }
