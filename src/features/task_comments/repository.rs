@@ -89,3 +89,28 @@ pub async fn add_reaction_to_comment(db_pool: &PgPool, comment_id: &i64, task_id
 
     Ok(result)
 }
+
+
+pub async fn update_comment(db_pool: &PgPool, session_user_id: &Uuid, task_id: &i64, comment_id: &i64, comment_content: &String) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            UPDATE task_comments
+            SET content = $4
+            WHERE task_id = $1
+              AND comment_id = $2
+              AND author_id = $3
+            "#,
+            &[
+                task_id,
+                comment_id,
+                session_user_id,
+                comment_content,
+            ],
+        )
+        .await?;
+
+    Ok(result)
+}

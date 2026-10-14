@@ -70,3 +70,29 @@ pub async fn delete_comment(session_user: web::ReqData<SessionUser>, path: web::
 
     Ok(HttpResponse::Ok().body("Comment deleted successfully"))
 }
+
+
+#[patch("/update/{view_id}/{task_id}/{comment_id}")]
+pub async fn update_comment(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, i64, i64)>, body: web::Json<String>, state: web::Data<AppState>) -> ApiResponse {
+    // Get SessionUser from request data
+    let session_user = session_user.into_inner();
+    let (_view_id, task_id, comment_id) = path.into_inner();
+    let updated_comment_content = body.into_inner(); 
+
+    // Only possible if its a comment Author, since he is the one who created it
+    // No checks are performed to verify this, only simple author_id match to the session_user.user_id is used
+
+    // Any user associated with the task can update a comment
+    let result = task_comments::update_comment(
+        &state.pg_pool,
+        &session_user.user_id,
+        &task_id,
+        &comment_id,
+        &updated_comment_content,
+    ).await?;
+    if result == 0 {
+        return Ok(HttpResponse::NotFound().body("Comment is not found or it does not belong to the current user"));
+    }
+
+    Ok(HttpResponse::Ok().body("Comment updated successfully"))
+}
