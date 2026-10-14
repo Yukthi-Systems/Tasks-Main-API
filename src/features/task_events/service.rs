@@ -344,7 +344,7 @@ pub async fn list_tasks_or_subtasks(state: &AppState, session_user_id: &Uuid, vi
         let task_ownership_info = get_task_ownership_info(&state, parent_task_id).await?;
 
         // Check if the user has permission to view subtasks
-        if !task_ownership_info.can_create(&session_user_id) {
+        if !task_ownership_info.can_create(&task_view_permission.owner_id) {
             return Err(ServiceError::Forbidden("You do not have permission to view subtasks of this task".into()));
         }
 
