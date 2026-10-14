@@ -1,4 +1,4 @@
-use routes::{health, auth, user, task_views, task_events, task_assignees};
+use routes::{health, auth, user, task_views, task_events, task_assignees, task_comments};
 use actix_web::web::scope as actix_scope;
 use actix_web::middleware::from_fn;
 use actix_web::{App, HttpServer};
@@ -111,16 +111,16 @@ async fn main() -> std::io::Result<()> {
             //     .service(task_alerts::update_alert)  // Only self-owned
             //     .service(task_alerts::delete_alert)  // Only self-owned
             // )
-            // .service(
-            //     actix_scope("/comments")   // Should give ViewID + TaskID every time (Should have show_comments = True)
-            //     .wrap(from_fn(middleware::user_session::auth_check))
-            //     .service(task_comments::create_comment) // Only self-owned
-            //     .service(task_comments::list_comments)  // List comments based on the view (Anyone)
-            //     .service(task_comments::get_comment)    // Fetch just one comment (same as list struct use)
-            //     .service(task_comments::update_comment)  // Only self-owned
-            //     .service(task_comments::delete_comment)  // Only self-owned
-            //     .service(task_comments::react_to_comment)  // Any user can react to any visible comment
-            // )
+            .service(
+                actix_scope("/comments")
+                .wrap(from_fn(middleware::user_session::auth_check))
+                .service(task_comments::react_to_comment)
+                .service(task_comments::create_comment)
+                .service(task_comments::delete_comment)
+                // .service(task_comments::list_comments)  // List comments based on the view (Anyone)
+                // .service(task_comments::get_comment)    // Fetch just one comment (same as list struct use)
+                // .service(task_comments::update_comment)  // Only self-owned
+            )
             .service(
                 actix_scope("/assignees")
                 .wrap(from_fn(middleware::user_session::auth_check))
