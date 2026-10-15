@@ -2,6 +2,7 @@ use crate::features::task_events::{get_task_ownership_info, get_task_info};
 use crate::features::task_views::get_task_view_permission;
 use crate::errors::{ServiceResult, ServiceError};
 use super::dto::ListCommentsDto;
+use super::model::TaskComment;
 use crate::state::AppState;
 use super::repository;
 use uuid::Uuid;
@@ -81,22 +82,19 @@ pub async fn add_reaction(state: &AppState, session_user_id: &Uuid, view_id: i64
 
 
 /// Add reaction to a comment (Any one can do it, with basic permissions)
-pub async fn list_comments(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, list_query: ListCommentsDto) -> ServiceResult<()> {
+pub async fn list_comments(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, list_query: ListCommentsDto) -> ServiceResult<Vec<TaskComment>> {
     // Validate if the user has permission to comment on the task associated with the comment
     validate_user_comment(state, session_user_id, view_id, task_id, false).await?;
 
     // List the comments from the database
     let result = repository::list_comments(&state.pg_pool, &task_id, list_query).await?;
-    if result.is_empty() {
-        return Err(ServiceError::NotFound("No comments found for the task".into()));
-    }
 
-    Ok(())
+    Ok(result)
 }
 
 
 /// Get a specific comment (Any one can do it, with basic permissions)
-pub async fn get_comment(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, comment_id: i64) -> ServiceResult<()> {
+pub async fn get_comment(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, comment_id: i64) -> ServiceResult<TaskComment> {
     // Validate if the user has permission to comment on the task associated with the comment
     validate_user_comment(state, session_user_id, view_id, task_id, false).await?;
 
@@ -106,5 +104,5 @@ pub async fn get_comment(state: &AppState, session_user_id: &Uuid, view_id: i64,
         return Err(ServiceError::NotFound("Comment not found for the task".into()));
     }
 
-    Ok(())
+    Ok(result.unwrap())
 }
