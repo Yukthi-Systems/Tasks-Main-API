@@ -116,7 +116,7 @@ pub async fn list_comments(session_user: web::ReqData<SessionUser>, path: web::P
 }
 
 
-#[get("/list/{view_id}/{task_id}/{comment_id}")]
+#[get("/fetch/{view_id}/{task_id}/{comment_id}")]
 pub async fn get_comment(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, i64, i64)>, state: web::Data<AppState>) -> ApiResponse {
     let session_user = session_user.into_inner();
     let (view_id, task_id, comment_id) = path.into_inner();
