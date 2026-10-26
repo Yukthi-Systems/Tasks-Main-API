@@ -101,15 +101,14 @@ async fn main() -> std::io::Result<()> {
                 .service(task_events::get_recurring_task)
             )
             // .service(
-            //     actix_scope("/alerts")   // Should give AlertID every time
+            //     actix_scope("/alerts")
             //     .wrap(from_fn(middleware::user_session::auth_check))
-            //     // This is only for self-owned alerts not shared at all
-            //     .service(task_alerts::create_alert)
-            //     .service(task_alerts::list_alerts)  // List alerts based on the view
-            //     .service(task_alerts::list_all_alerts)  // List all alerts regardless of the view
-            //     .service(task_alerts::get_alert) // Including shared alert fetch
-            //     .service(task_alerts::update_alert)  // Only self-owned
-            //     .service(task_alerts::delete_alert)  // Only self-owned
+                // .service(task_alerts::create_alert)
+                // .service(task_alerts::list_alerts)  // List alerts based on the view
+                // .service(task_alerts::list_all_alerts)  // List all alerts regardless of the view
+                // .service(task_alerts::get_alert)
+                // .service(task_alerts::update_alert)
+                // .service(task_alerts::delete_alert)
             // )
             .service(
                 actix_scope("/comments")
