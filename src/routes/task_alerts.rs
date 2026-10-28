@@ -1,4 +1,4 @@
-use crate::features::task_alerts::{self, TaskAlertDto};
+use crate::features::task_alerts::{self, TaskAlertDto, DeleteTaskAlertDto};
 use actix_web::{HttpResponse, delete, get, post, web};
 use crate::features::users::SessionUser;
 use crate::errors::ApiResponse;
@@ -30,4 +30,16 @@ pub async fn create_alert(session_user: web::ReqData<SessionUser>, path: web::Pa
     ).await?;
 
     Ok(HttpResponse::Created().body("Task alert created successfully"))
+}
+
+
+#[delete("/delete/{task_id}")]
+pub async fn delete_alert(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, body: web::Json<DeleteTaskAlertDto>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let task_id = path.into_inner();
+    let delete_task_alert_dto = body.into_inner();
+
+    task_alerts::delete_alert(&state, &session_user.user_id, task_id, delete_task_alert_dto.alert_at).await?;
+
+    Ok(HttpResponse::Ok().body("Task alert deleted successfully"))
 }

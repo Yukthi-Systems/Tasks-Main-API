@@ -12,6 +12,12 @@ pub struct TaskAlertDto {   // Same for Create / Edit
 }
 
 
+#[derive(Deserialize)]
+pub struct DeleteTaskAlertDto {
+    pub alert_at: ChronoUtc,
+}
+
+
 // ------- Implementations ------- //
 
 
