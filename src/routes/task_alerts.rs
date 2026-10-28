@@ -51,6 +51,11 @@ pub async fn update_alert(session_user: web::ReqData<SessionUser>, path: web::Pa
     let task_id = path.into_inner();
     let edit_task_alert_dto = body.into_inner();
 
+    // Validate the edit task alert DTO
+    if !edit_task_alert_dto.validate() {
+        return Ok(HttpResponse::BadRequest().body("Invalid task alert data, maybe check the alert time"));
+    }
+
     task_alerts::edit_alert(&state, &session_user.user_id, task_id, edit_task_alert_dto).await?;
 
     Ok(HttpResponse::Ok().body("Task alert updated successfully"))
