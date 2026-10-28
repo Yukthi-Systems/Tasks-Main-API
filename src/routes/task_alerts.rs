@@ -1,4 +1,4 @@
-use crate::features::task_alerts::{self, CreateTaskAlertDto, EditTaskAlertDto, DeleteTaskAlertDto};
+use crate::features::task_alerts::{self, CreateTaskAlertDto, EditTaskAlertDto, DeleteTaskAlertDto, ListAlertsDto};
 use actix_web::{HttpResponse, delete, get, patch, post, web};
 use crate::features::users::SessionUser;
 use crate::errors::ApiResponse;
@@ -59,4 +59,37 @@ pub async fn update_alert(session_user: web::ReqData<SessionUser>, path: web::Pa
     task_alerts::edit_alert(&state, &session_user.user_id, task_id, edit_task_alert_dto).await?;
 
     Ok(HttpResponse::Ok().body("Task alert updated successfully"))
+}
+
+
+#[get("/list-all")]
+pub async fn list_all_alerts(session_user: web::ReqData<SessionUser>, query: web::Query<ListAlertsDto>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let list_alerts_dto = query.into_inner();
+
+    // Validate the list alerts DTO
+    if !list_alerts_dto.validate() {
+        return Ok(HttpResponse::BadRequest().body("Invalid query parameters"));
+    }
+
+    let alerts = task_alerts::list_all_task_alerts(&state.pg_pool, &session_user.user_id, &list_alerts_dto).await?;
+
+    Ok(HttpResponse::Ok().json(alerts))
+}
+
+
+#[get("/list/{task_id}")]
+pub async fn list_alerts(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, query: web::Query<ListAlertsDto>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let task_id = path.into_inner();
+    let list_alerts_dto = query.into_inner();
+
+    // Validate the list alerts DTO
+    if !list_alerts_dto.validate() {
+        return Ok(HttpResponse::BadRequest().body("Invalid query parameters"));
+    }
+
+    let alerts = task_alerts::list_task_alerts(&state.pg_pool, &session_user.user_id, task_id, &list_alerts_dto).await?;
+
+    Ok(HttpResponse::Ok().json(alerts))
 }
