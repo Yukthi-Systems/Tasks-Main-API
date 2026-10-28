@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 
 /// Validate if a user has permission to comment on a task
-async fn validate_user_comment(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, create_new_task: bool) -> ServiceResult<()> {
+async fn validate_user_comment(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, create_new_comment: bool) -> ServiceResult<()> {
     // Get the task information from the database
     let task_info = get_task_info(&state.pg_pool, task_id).await?;
     if task_info.is_none() {
@@ -21,14 +21,14 @@ async fn validate_user_comment(state: &AppState, session_user_id: &Uuid, view_id
     // Get the task view permission for the user and view ID
     let task_view_permission = get_task_view_permission(&state, session_user_id, view_id).await?;
 
-    // If creating a new task, check if the user has the necessary ownership permissions
-    if create_new_task {
+    // If creating a new comment, check if the user has the necessary ownership permissions
+    if create_new_comment {
         // Fetch the task ownership information for the task
         let task_ownership_info = get_task_ownership_info(&state, task_id).await?;
 
-        // See if the session user is the owner of the task or an assignee
+        // See if the session user is either the Assignee or Owner or Creator of the task
         if !task_ownership_info.can_create(&task_view_permission.owner_id) {
-            return Err(ServiceError::Forbidden("You do not have permission to comment on this task".into()));
+            return Err(ServiceError::Forbidden("You are not allowed to create a comment for this task".into()));
         }
     }
 
