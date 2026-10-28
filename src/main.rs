@@ -1,4 +1,4 @@
-use routes::{health, auth, user, task_views, task_events, task_assignees, task_comments};
+use routes::{health, auth, user, task_views, task_events, task_assignees, task_comments, task_alerts};
 use actix_web::web::scope as actix_scope;
 use actix_web::middleware::from_fn;
 use actix_web::{App, HttpServer};
@@ -100,16 +100,16 @@ async fn main() -> std::io::Result<()> {
                 .service(task_events::list_recurring_tasks)
                 .service(task_events::get_recurring_task)
             )
-            // .service(
-            //     actix_scope("/alerts")
-            //     .wrap(from_fn(middleware::user_session::auth_check))
-                // .service(task_alerts::create_alert)
+            .service(
+                actix_scope("/alerts")
+                .wrap(from_fn(middleware::user_session::auth_check))
+                .service(task_alerts::create_alert)
                 // .service(task_alerts::list_alerts)  // List alerts based on the view
                 // .service(task_alerts::list_all_alerts)  // List all alerts regardless of the view
                 // .service(task_alerts::get_alert)
                 // .service(task_alerts::update_alert)
                 // .service(task_alerts::delete_alert)
-            // )
+            )
             .service(
                 actix_scope("/comments")
                 .wrap(from_fn(middleware::user_session::auth_check))
