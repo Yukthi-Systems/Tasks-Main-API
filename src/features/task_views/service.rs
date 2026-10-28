@@ -1,5 +1,5 @@
+use crate::cache::{set_redis_cache, delete_redis_cache, get_redis_cache, delete_redis_cache_by_pattern};
 use super::dto::{TaskViewDbDto, UpdateTaskViewDto, CreateSharedTaskViewDto};
-use crate::cache::{set_redis_cache, delete_redis_cache, get_redis_cache};
 use super::model::{TaskViewPermission, SharedTaskView};
 use crate::errors::{ServiceResult, ServiceError};
 use crate::state::AppState;
@@ -62,7 +62,7 @@ pub async fn update_task_view(state: &AppState, user_id: &Uuid, new_info: &Updat
     }
 
     // Invalidate the cache for all task view permissions related to this view ID
-    delete_redis_cache(&state.redis_cache, &format!("tvp:{}:*", new_info.view_id)).await?;
+    delete_redis_cache_by_pattern(&state.redis_cache, &format!("tvp:{}:*", new_info.view_id)).await?;
 
     Ok(())
 }
@@ -77,7 +77,7 @@ pub async fn delete_task_view(state: &AppState, user_id: &Uuid, view_id: i64) ->
     }
 
     // Invalidate the cache for all task view permissions related to this view ID
-    delete_redis_cache(&state.redis_cache, &format!("tvp:{}:*", view_id)).await?;
+    delete_redis_cache_by_pattern(&state.redis_cache, &format!("tvp:{}:*", view_id)).await?;
 
     Ok(())
 }
@@ -116,7 +116,7 @@ pub async fn update_shared_task_view(state: &AppState, session_user_id: &Uuid, n
     let result = repository::update_shared_task_view(&state.pg_pool, session_user_id, new_info).await?;
 
     // Invalidate the cache for all task view permissions related to this view ID
-    delete_redis_cache(&state.redis_cache, &format!("tvp:{}:*", new_info.view_id)).await?;
+    delete_redis_cache_by_pattern(&state.redis_cache, &format!("tvp:{}:*", new_info.view_id)).await?;
 
     Ok(result)
 }

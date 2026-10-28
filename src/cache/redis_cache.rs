@@ -54,6 +54,18 @@ pub async fn delete_redis_cache(conn: &MultiplexedConnection, key: &str) -> Serv
 }
 
 
+/// Delete multiple keys from Redis (Key Like "session:*")
+pub async fn delete_redis_cache_by_pattern(conn: &MultiplexedConnection, pattern: &str) -> ServiceResult<()> {
+    let mut redis_conn = conn.clone();
+    let keys: Vec<String> = redis_conn.keys(pattern).await?;
+    if !keys.is_empty() {
+        Ok(redis_conn.del(keys).await?)
+    } else {
+        Ok(())
+    }
+}
+
+
 /// Initialize a Redis connection and verify it with a PING command
 pub async fn init_redis(url: &str) -> MultiplexedConnection {
     let client = Client::open(url).expect("Failed to create Redis client");
