@@ -1,5 +1,5 @@
+use super::dto::{CreateTaskAlertDto, EditTaskAlertDto, DeleteTaskAlertDto};
 use deadpool_postgres::Pool as PgPool;
-use super::dto::TaskAlertDto;
 use crate::errors::PgResult;
 use uuid::Uuid;
 
@@ -7,7 +7,7 @@ use uuid::Uuid;
 type ChronoUtc = chrono::DateTime<chrono::Utc>;
 
 
-pub async fn create_task_alert(db_pool: &PgPool, session_user_id: &Uuid, task_id: i64, task_alert_dto: &TaskAlertDto) -> PgResult<u64> {
+pub async fn create_task_alert(db_pool: &PgPool, session_user_id: &Uuid, task_id: i64, create_task_alert_dto: &CreateTaskAlertDto) -> PgResult<u64> {
     let client = db_pool.get().await?;
 
     let result = client
@@ -25,9 +25,9 @@ pub async fn create_task_alert(db_pool: &PgPool, session_user_id: &Uuid, task_id
             &[
                 &task_id,
                 &session_user_id,
-                &task_alert_dto.alert_at,
-                &task_alert_dto.notify_via_email,
-                &task_alert_dto.notify_via_push,
+                &create_task_alert_dto.alert_at,
+                &create_task_alert_dto.notify_via_email,
+                &create_task_alert_dto.notify_via_push,
             ],
         )
         .await?;
@@ -36,7 +36,7 @@ pub async fn create_task_alert(db_pool: &PgPool, session_user_id: &Uuid, task_id
 }
 
 
-pub async fn delete_task_alert(db_pool: &PgPool, session_user_id: &Uuid, task_id: i64, alert_at: &ChronoUtc) -> PgResult<u64> {
+pub async fn delete_task_alert(db_pool: &PgPool, session_user_id: &Uuid, task_id: i64, delete_task_alert_dto: &DeleteTaskAlertDto) -> PgResult<u64> {
     let client = db_pool.get().await?;
     let result = client
         .execute(
@@ -49,7 +49,36 @@ pub async fn delete_task_alert(db_pool: &PgPool, session_user_id: &Uuid, task_id
             &[
                 &task_id,
                 &session_user_id,
-                &alert_at,
+                &delete_task_alert_dto.alert_at,
+            ],
+        )
+        .await?;
+
+    Ok(result)
+}
+
+
+pub async fn edit_task_alert(db_pool: &PgPool, session_user_id: &Uuid, task_id: i64, edit_task_alert_dto: &EditTaskAlertDto) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+    let result = client
+        .execute(
+            r#"
+            UPDATE task_alerts
+            SET
+                alert_at = $4,
+                notify_via_email = $5,
+                notify_via_push = $6
+            WHERE task_id = $1
+              AND alert_recipient_id = $2
+              AND alert_at = $3
+            "#,
+            &[
+                &task_id,
+                &session_user_id,
+                &edit_task_alert_dto.current_alert_at,
+                &edit_task_alert_dto.new_alert_at,
+                &edit_task_alert_dto.notify_via_email,
+                &edit_task_alert_dto.notify_via_push,
             ],
         )
         .await?;

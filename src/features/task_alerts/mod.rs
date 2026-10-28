@@ -4,8 +4,9 @@ mod service;
 mod repository;
 
 
-pub use dto::{TaskAlertDto, DeleteTaskAlertDto};
+pub use dto::{CreateTaskAlertDto, DeleteTaskAlertDto, EditTaskAlertDto};
 pub use service::{
     create_alert,
-    delete_alert
+    delete_alert,
+    edit_alert
 };

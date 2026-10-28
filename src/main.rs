@@ -105,10 +105,9 @@ async fn main() -> std::io::Result<()> {
                 .wrap(from_fn(middleware::user_session::auth_check))
                 .service(task_alerts::create_alert)
                 .service(task_alerts::delete_alert)
-                // .service(task_alerts::list_alerts)  // List alerts based on the view
-                // .service(task_alerts::list_all_alerts)  // List all alerts regardless of the view
-                // .service(task_alerts::get_alert)
-                // .service(task_alerts::update_alert)
+                .service(task_alerts::update_alert)
+                // .service(task_alerts::list_alerts)  // List alerts based on the task
+                // .service(task_alerts::list_all_alerts)  // List all the user alerts
             )
             .service(
                 actix_scope("/comments")
