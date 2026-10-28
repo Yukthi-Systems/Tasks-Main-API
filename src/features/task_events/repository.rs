@@ -376,17 +376,27 @@ pub async fn get_all_root_tasks(db_pool: &PgPool, owner_id: &Uuid, filter: &Task
                     WHERE sub.parent_task_id = t.task_id
                 ) AS total_sub_tasks
             FROM tasks t
-            WHERE t.owner_id = $1
-            AND t.parent_task_id IS NULL
-            AND ($2::TEXT IS NULL OR t.title ILIKE '%' || $2 || '%')
-            AND t.task_status = ANY($3)
-            AND t.task_tag = ANY($4)
-            AND t.start_at >= $5
-            AND t.end_at <= $6
-            AND (
-                $7::TIMESTAMPTZ IS NULL
-                OR (t.start_at, t.task_id) > ($7, $8)
-            )
+            WHERE
+                (
+                    t.owner_id = $1
+                    OR
+                    EXISTS (
+                        SELECT 1
+                        FROM task_assignees ta
+                        WHERE ta.task_id = t.task_id
+                        AND ta.assignee_id = $1
+                    )
+                )
+                AND t.parent_task_id IS NULL
+                AND ($2::TEXT IS NULL OR t.title ILIKE '%' || $2 || '%')
+                AND t.task_status = ANY($3)
+                AND t.task_tag = ANY($4)
+                AND t.start_at >= $5
+                AND t.end_at <= $6
+                AND (
+                    $7::TIMESTAMPTZ IS NULL
+                    OR (t.start_at, t.task_id) > ($7, $8)
+                )
             ORDER BY t.start_at ASC, t.task_id ASC
             LIMIT $9
             "#,
