@@ -345,7 +345,7 @@ pub async fn get_child_tasks(db_pool: &PgPool, parent_task_id: i64, filter: &Tas
 }
 
 
-pub async fn get_all_root_tasks(db_pool: &PgPool, owner_id: &Uuid, filter: &TaskFilterDto) -> PgResult<Vec<TaskInfo>> {
+pub async fn get_all_root_tasks(db_pool: &PgPool, owner_id: &Uuid, filter: &TaskFilterDto, show_assigned: &bool) -> PgResult<Vec<TaskInfo>> {
     let client = db_pool.get().await?;
 
     let rows = client
@@ -385,6 +385,7 @@ pub async fn get_all_root_tasks(db_pool: &PgPool, owner_id: &Uuid, filter: &Task
                         FROM task_assignees ta
                         WHERE ta.task_id = t.task_id
                         AND ta.assignee_id = $1
+                        AND $10::BOOLEAN
                     )
                 )
                 AND t.parent_task_id IS NULL
@@ -410,6 +411,7 @@ pub async fn get_all_root_tasks(db_pool: &PgPool, owner_id: &Uuid, filter: &Task
                 &filter.cursor_start_at,
                 &filter.cursor_task_id,
                 &filter.limit,
+                &show_assigned,
             ],
         )
         .await?;

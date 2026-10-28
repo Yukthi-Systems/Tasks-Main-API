@@ -350,7 +350,7 @@ pub async fn list_tasks_or_subtasks(state: &AppState, session_user_id: &Uuid, vi
 
         list_of_tasks = repository::get_child_tasks(&state.pg_pool, parent_task_id, &filter).await?;
     } else {
-        list_of_tasks = repository::get_all_root_tasks(&state.pg_pool, &task_view_permission.owner_id, &filter).await?;
+        list_of_tasks = repository::get_all_root_tasks(&state.pg_pool, &task_view_permission.owner_id, &filter, &task_view_permission.show_assigned).await?;
     }
 
     Ok(list_of_tasks)
