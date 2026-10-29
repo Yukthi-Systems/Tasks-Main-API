@@ -1,6 +1,7 @@
 use actix_web::{HttpResponse, delete, get, patch, post, web};
+use crate::features::event_invitees::{self, PubInviteeDto};
 use crate::features::users::SessionUser;
-use crate::features::event_invitees;
+use crate::features::task_events;
 use crate::errors::ApiResponse;
 use crate::state::AppState;
 
@@ -79,4 +80,43 @@ pub async fn list_invites(session_user: web::ReqData<SessionUser>, path: web::Pa
     ).await?;
 
     Ok(HttpResponse::Ok().json(invites))
+}
+
+
+#[get("/info/{validation_code}")]
+pub async fn get_event_info(path: web::Path<uuid::Uuid>, query: web::Query<PubInviteeDto>, state: web::Data<AppState>) -> ApiResponse {
+    let validation_code = path.into_inner();
+    let pub_invitee_dto = query.into_inner();
+
+    // Fetch the event invitee information based on task_id and the email id
+    let event_info = event_invitees::get_event_invitee_info(
+        &state.pg_pool,
+        &pub_invitee_dto.task_id,
+        &pub_invitee_dto.invitee_email,
+    ).await?;
+
+    // If it doesn't exist, return an error
+    if event_info.is_none() {
+        return Ok(HttpResponse::NotFound().body("Event invitee not found"));
+    }
+    let event_info = event_info.unwrap();
+
+    // Check if the validation code matches
+    if event_info.validation_code != validation_code {
+        return Ok(HttpResponse::Unauthorized().body("Invalid validation code"));
+    }
+
+    // Fetch the task information associated with the event invitee
+    let task_info = task_events::get_task_info(
+        &state.pg_pool,
+        event_info.task_id,
+    ).await?;
+
+    // Return the combined event and task information as JSON response
+    Ok(HttpResponse::Ok().json(
+        serde_json::json!({
+            "event_info": event_info,
+            "task_info": task_info,
+        })
+    ))
 }

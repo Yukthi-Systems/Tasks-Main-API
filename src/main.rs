@@ -45,11 +45,11 @@ async fn main() -> std::io::Result<()> {
                 .wrap(from_fn(middleware::key_based::auth_check))
                 .service(health::api_health_check)
             )
-            // .service(
-            //     actix_scope("/public")
-            //     .service(event_invites::update_response)
-            //     .service(event_invites::get_event_info)
-            // )
+            .service(
+                actix_scope("/public")
+                .service(event_invitees::get_event_info)
+                // .service(event_invitees::update_response)
+            )
             .service(
                 actix_scope("/auth")
                 .service(auth::user_login)

@@ -4,6 +4,8 @@ mod service;
 mod repository;
 
 
+pub use repository::get_invitee as get_event_invitee_info;
+pub use dto::PubInviteeDto;
 pub use service::{
     list_all_invitees,
     create_invite,
