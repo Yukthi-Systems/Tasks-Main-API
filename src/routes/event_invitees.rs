@@ -83,7 +83,7 @@ pub async fn list_invites(session_user: web::ReqData<SessionUser>, path: web::Pa
 }
 
 
-#[get("/info/{validation_code}")]
+#[get("/event/invite/info/{validation_code}")]
 pub async fn get_event_info(path: web::Path<uuid::Uuid>, query: web::Query<PubInviteeDto>, state: web::Data<AppState>) -> ApiResponse {
     let validation_code = path.into_inner();
     let pub_invitee_dto = query.into_inner();
