@@ -120,8 +120,8 @@ async fn main() -> std::io::Result<()> {
                 .wrap(from_fn(middleware::user_session::auth_check))
                 .service(event_invitees::create_invitee)
                 .service(event_invitees::resend_invite)
-            //     .service(event_invites::delete_invite)
-            //     .service(event_invites::list_invites)
+                .service(event_invitees::delete_invite)
+            //     .service(event_invitees::list_invites)
             )
             .service(
                 actix_scope("/comments")

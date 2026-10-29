@@ -21,6 +21,21 @@ async fn can_invite(state: &AppState, session_user_id: &Uuid, view_id: i64, task
 }
 
 
+/// Check if a user can delete an invite for a task
+/// Returns `Ok(true)` if the user can delete an invite, `Ok(false)` otherwise
+async fn can_delete_invite(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64) -> ServiceResult<bool> {
+    // Fetch the task ownership information for the task
+    let task_ownership_info = get_task_ownership_info(&state, task_id).await?;
+
+    // See if the session user is either the Assignee or Owner or Creator of the task
+    if !task_ownership_info.can_delete(&session_user_id) {
+        return Ok(false);
+    }
+
+    Ok(true)
+}
+
+
 /// Create an invite for a task
 pub async fn create_invite(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, invitee_email: &str) -> ServiceResult<()> {
     // Validate if the user has permission to invite for the task
@@ -70,6 +85,28 @@ pub async fn resend_invite(state: &AppState, session_user_id: &Uuid, view_id: i6
 
     // Resend the invite notification to the invitee (e.g., via email)
     // TODO: Make RMQ call to send an invite email to the invitee
+
+    Ok(())
+}
+
+
+/// Delete an invite for a task
+pub async fn delete_invite(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, invitee_email: &str) -> ServiceResult<()> {
+    // Validate if the user has permission to invite for the task
+    if !can_delete_invite(state, session_user_id, view_id, task_id).await? {
+        return Err(ServiceError::Forbidden("You do not have permission to delete invite for this task".into()));
+    }
+
+    // Delete the invite in the database
+    let result = repository::delete_invitee(
+        &state.pg_pool,
+        &task_id,
+        invitee_email,
+    ).await?;
+
+    if result == 0 {
+        return Err(ServiceError::NotFound("Failed to delete invite for task".into()));
+    }
 
     Ok(())
 }

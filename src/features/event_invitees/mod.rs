@@ -8,5 +8,6 @@ mod repository;
 pub use dto::ListCommentsDto;
 pub use service::{
     create_invite,
-    resend_invite
+    resend_invite,
+    delete_invite
 };
