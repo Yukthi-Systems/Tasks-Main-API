@@ -105,7 +105,7 @@ CREATE TABLE event_invites (
 
     -- The user who is invited to the task (E-Mail ID of the invitee)
     invitee_email VARCHAR(255) NOT NULL,    -- E-Mail of the invitee
-    validation_code VARCHAR(16) NOT NULL,   -- Code used to validate the invitee's email
+    validation_code UUID NOT NULL UNIQUE,   -- Code used to validate the invitee's email
 
     -- The response status of the invitee (e.g., 'PENDING', 'ACCEPTED', 'DECLINED')
     response_status invite_response_status NOT NULL DEFAULT 'PENDING',

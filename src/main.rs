@@ -1,4 +1,4 @@
-use routes::{health, auth, user, task_views, task_events, task_assignees, task_comments, task_alerts, event_invites};
+use routes::{health, auth, user, task_views, task_events, task_assignees, task_comments, task_alerts, event_invitees};
 use actix_web::web::scope as actix_scope;
 use actix_web::middleware::from_fn;
 use actix_web::{App, HttpServer};
@@ -118,7 +118,7 @@ async fn main() -> std::io::Result<()> {
             .service(
                 actix_scope("/invites")
                 .wrap(from_fn(middleware::user_session::auth_check))
-                .service(event_invites::create_invite)
+                .service(event_invitees::create_invitee)
             //     .service(event_invites::resend_invite)
             //     .service(event_invites::delete_invite)
             //     .service(event_invites::list_invites)
