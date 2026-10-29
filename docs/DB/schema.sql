@@ -53,6 +53,15 @@ CREATE TYPE task_tag AS ENUM (
 );
 
 
+-- Enum of Invite Response Status
+CREATE TYPE invite_response_status AS ENUM (
+    'PENDING',    -- Invite sent but no response yet
+    'MAYBE',      -- Invitee is unsure / Tentative response
+    'ACCEPTED',   -- Invite accepted
+    'DECLINED'    -- Invite declined
+);
+
+
 -- Tasks
 CREATE TABLE tasks (
     task_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -87,6 +96,27 @@ CREATE TABLE task_assignees (
 
     -- Composite primary key ensures uniqueness of task assignments for each user
     PRIMARY KEY (task_id, assignee_id)
+);
+
+
+-- Event Invites (Mapping of tasks to invited users and their response status)
+CREATE TABLE event_invites (
+    task_id BIGINT NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
+
+    -- The user who is invited to the task (E-Mail ID of the invitee)
+    invitee_email VARCHAR(255) NOT NULL,    -- E-Mail of the invitee
+    validation_code VARCHAR(16) NOT NULL,   -- Code used to validate the invitee's email
+
+    -- The response status of the invitee (e.g., 'PENDING', 'ACCEPTED', 'DECLINED')
+    response_status invite_response_status NOT NULL DEFAULT 'PENDING',
+
+    -- Additional information about the response (e.g., reason for decline, time of response)
+    response_info JSONB NOT NULL,
+
+    invited_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+    -- Composite primary key ensures uniqueness of invites for the same task and invitee
+    PRIMARY KEY (task_id, invitee_email)
 );
 
 
