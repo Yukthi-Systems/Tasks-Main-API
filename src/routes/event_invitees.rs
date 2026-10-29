@@ -1,5 +1,5 @@
+use crate::features::event_invitees::{self, PubInviteeDto, PubInviteResponseDto};
 use actix_web::{HttpResponse, delete, get, patch, post, web};
-use crate::features::event_invitees::{self, PubInviteeDto};
 use crate::features::users::SessionUser;
 use crate::features::task_events;
 use crate::errors::ApiResponse;
@@ -20,7 +20,7 @@ pub async fn create_invitee(session_user: web::ReqData<SessionUser>, path: web::
         &session_user.user_id,
         view_id,
         task_id,
-        &invitee_email,
+        &invitee_email
     ).await?;
 
     Ok(HttpResponse::Created().body("Invite created successfully, notification sent to the invitee"))
@@ -60,7 +60,7 @@ pub async fn delete_invite(session_user: web::ReqData<SessionUser>, path: web::P
         &session_user.user_id,
         view_id,
         task_id,
-        &invitee_email,
+        &invitee_email
     ).await?;
 
     Ok(HttpResponse::Ok().body("Invite deleted successfully"))
@@ -76,7 +76,7 @@ pub async fn list_invites(session_user: web::ReqData<SessionUser>, path: web::Pa
         &state,
         &session_user.user_id,
         view_id,
-        task_id,
+        task_id
     ).await?;
 
     Ok(HttpResponse::Ok().json(invites))
@@ -88,29 +88,16 @@ pub async fn get_event_info(path: web::Path<uuid::Uuid>, query: web::Query<PubIn
     let validation_code = path.into_inner();
     let pub_invitee_dto = query.into_inner();
 
-    // Fetch the event invitee information based on task_id and the email id
-    let event_info = event_invitees::get_event_invitee_info(
-        &state.pg_pool,
+    // Validate the invitee's validation code
+    let event_info = event_invitees::get_public_invitee_info(
+        &state,
         &pub_invitee_dto.task_id,
         &pub_invitee_dto.invitee_email,
+        &validation_code
     ).await?;
-
-    // If it doesn't exist, return an error
-    if event_info.is_none() {
-        return Ok(HttpResponse::NotFound().body("Event invitee not found"));
-    }
-    let event_info = event_info.unwrap();
-
-    // Check if the validation code matches
-    if event_info.validation_code != validation_code {
-        return Ok(HttpResponse::Unauthorized().body("Invalid validation code"));
-    }
 
     // Fetch the task information associated with the event invitee
-    let task_info = task_events::get_task_info(
-        &state.pg_pool,
-        event_info.task_id,
-    ).await?;
+    let task_info = task_events::get_task_info(&state.pg_pool, event_info.task_id).await?;
 
     // Return the combined event and task information as JSON response
     Ok(HttpResponse::Ok().json(
@@ -119,4 +106,29 @@ pub async fn get_event_info(path: web::Path<uuid::Uuid>, query: web::Query<PubIn
             "task_info": task_info,
         })
     ))
+}
+
+
+#[post("/event/invite/{validation_code}")]
+pub async fn update_response(path: web::Path<uuid::Uuid>, query: web::Query<PubInviteeDto>, body: web::Json<PubInviteResponseDto>, state: web::Data<AppState>) -> ApiResponse {
+    let validation_code = path.into_inner();
+    let pub_invitee_dto = query.into_inner();
+    let response_dto = body.into_inner();
+
+    // Validate the invitee's validation code before updating the response
+    let event_info = event_invitees::get_public_invitee_info(
+        &state,
+        &pub_invitee_dto.task_id,
+        &pub_invitee_dto.invitee_email,
+        &validation_code
+    ).await?;
+
+    // Update the response for the event invitee
+    event_invitees::respond_to_invite(
+        &state,
+        &event_info,
+        &response_dto
+    ).await?;
+
+    Ok(HttpResponse::Ok().body("Invite response updated successfully"))
 }

@@ -1,6 +1,7 @@
 use crate::features::task_events::get_task_ownership_info;
+use super::model::{PubEventInvitee, EventInvitee};
 use crate::errors::{ServiceResult, ServiceError};
-use super::model::PubEventInvitee;
+use super::dto::PubInviteResponseDto;
 use crate::state::AppState;
 use super::repository;
 use uuid::Uuid;
@@ -34,6 +35,29 @@ async fn can_delete_invite(state: &AppState, session_user_id: &Uuid, view_id: i6
     }
 
     Ok(true)
+}
+
+
+/// Validate Validation Code for an invitee and get the public invitee information [Used with out session user]
+pub async fn get_public_invitee_info(state: &AppState, task_id: &i64, invitee_email: &str, validation_code: &Uuid) -> ServiceResult<EventInvitee> {
+    // Fetch the event invitee information based on task_id and the email id
+    let existing_invitee = repository::get_invitee(
+        &state.pg_pool,
+        task_id,
+        invitee_email,
+    ).await?;
+
+    // Check if the invitee exists, else return an error
+    if existing_invitee.is_none() {
+        return Err(ServiceError::NotFound("Invitee not found".into()));
+    }
+    let existing_invitee = existing_invitee.unwrap();
+
+    if &existing_invitee.validation_code != validation_code {
+        return Err(ServiceError::Unauthorized("Invalid validation code".into()));
+    }
+
+    Ok(existing_invitee)
 }
 
 
@@ -138,4 +162,23 @@ pub async fn list_all_invitees(state: &AppState, session_user_id: &Uuid, view_id
     let result = repository::list_all_invitees(&state.pg_pool, &task_id).await?;
 
     Ok(result)
+}
+
+
+/// Respond to an invite for a task
+pub async fn respond_to_invite(state: &AppState, event_info: &EventInvitee, resp_dto: &PubInviteResponseDto) -> ServiceResult<()> {
+    // Update the response in the database
+    let result = repository::update_invite_response(
+        &state.pg_pool,
+        &event_info.validation_code,
+        &resp_dto
+    ).await?;
+
+    if result == 0 {
+        return Err(ServiceError::NotFound("Failed to update invite response".into()));
+    }
+
+    // TODO: Send a reply notification back to the task owner (e.g., via email) about the invitee's response
+
+    Ok(())
 }

@@ -1,5 +1,6 @@
 use super::model::{EventInvitee, PubEventInvitee};
 use deadpool_postgres::Pool as PgPool;
+use super::dto::PubInviteResponseDto;
 use crate::errors::PgResult;
 use uuid::Uuid;
 
@@ -80,4 +81,26 @@ pub async fn list_all_invitees(db_pool: &PgPool, task_id: &i64) -> PgResult<Vec<
         .await?;
 
     Ok(PubEventInvitee::from_rows(rows))
+}
+
+
+pub async fn update_invite_response(db_pool: &PgPool, validation_code: &Uuid, resp_dto: &PubInviteResponseDto) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            UPDATE event_invites
+            SET response_status = $1, response_info = $2
+            WHERE validation_code = $3
+            "#,
+            &[
+                &resp_dto.response_status,
+                &resp_dto.response_info,
+                validation_code,
+            ],
+        )
+        .await?;
+
+    Ok(result)
 }
