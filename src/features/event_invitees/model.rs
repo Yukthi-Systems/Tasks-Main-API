@@ -1,20 +1,44 @@
+use postgres_types::{ToSql, FromSql};
+use serde::{Serialize, Deserialize};
+use serde_json::Value as JsonValue;
 use pg_row_derive::RowFrom;
-use serde::Serialize;
 use uuid::Uuid;
 
 
 type ChronoUtc = chrono::DateTime<chrono::Utc>;
 
 
+#[derive(Debug, PartialEq, Serialize, Deserialize, ToSql, FromSql)]
+#[postgres(name = "invite_response_status", rename_all = "SCREAMING_SNAKE_CASE")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum InviteResponseStatus {
+    Pending,    // Invite sent but no response yet
+    Maybe,      // Invitee is unsure / Tentative response
+    Accepted,   // Invite accepted
+    Declined,   // Invite declined
+}
+
+
 #[derive(RowFrom, Serialize)]
-pub struct TaskComment {
-    pub comment_id: i64,
+pub struct EventInvitee {
     pub task_id: i64,
-    pub author_id: Uuid,
+    pub invitee_email: String,
 
-    pub content: String,
-    pub reactions: serde_json::Value,
+    pub validation_code: Uuid,
 
-    pub created_at: ChronoUtc,
-    pub updated_at: ChronoUtc,
+    pub response_info: JsonValue,
+    pub response_status: InviteResponseStatus,
+
+    pub invited_at: ChronoUtc,
+}
+
+
+#[derive(RowFrom, Serialize)]
+pub struct PubEventInvitee {
+    pub invitee_email: String,
+
+    pub response_info: JsonValue,
+    pub response_status: InviteResponseStatus,
+
+    pub invited_at: ChronoUtc,
 }

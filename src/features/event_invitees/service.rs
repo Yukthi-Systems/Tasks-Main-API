@@ -47,3 +47,29 @@ pub async fn create_invite(state: &AppState, session_user_id: &Uuid, view_id: i6
 
     Ok(())
 }
+
+
+/// Resend an invite for a task
+pub async fn resend_invite(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, invitee_email: &str) -> ServiceResult<()> {
+    // Validate if the user has permission to invite for the task
+    if !can_invite(state, session_user_id, view_id, task_id).await? {
+        return Err(ServiceError::Forbidden("You do not have permission to invite for this task".into()));
+    }
+
+    // Resend the invite in the database
+    let result = repository::get_invitee(
+        &state.pg_pool,
+        &task_id,
+        invitee_email,
+    ).await?;
+
+    // If the invitee does not exist, return an error
+    if result.is_none() {
+        return Err(ServiceError::NotFound("Invitee not found".into()));
+    }
+
+    // Resend the invite notification to the invitee (e.g., via email)
+    // TODO: Make RMQ call to send an invite email to the invitee
+
+    Ok(())
+}
