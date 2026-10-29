@@ -4,9 +4,8 @@ mod service;
 mod repository;
 
 
-// pub use repository::{delete_comment, update_comment};
-pub use dto::ListCommentsDto;
 pub use service::{
+    list_all_invitees,
     create_invite,
     resend_invite,
     delete_invite

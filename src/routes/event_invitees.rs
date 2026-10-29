@@ -64,3 +64,19 @@ pub async fn delete_invite(session_user: web::ReqData<SessionUser>, path: web::P
 
     Ok(HttpResponse::Ok().body("Invite deleted successfully"))
 }
+
+
+#[get("/list/{view_id}/{task_id}")]
+pub async fn list_invites(session_user: web::ReqData<SessionUser>, path: web::Path<(i64, i64)>, state: web::Data<AppState>) -> ApiResponse {
+    let session_user = session_user.into_inner();
+    let (view_id, task_id) = path.into_inner();
+
+    let invites = event_invitees::list_all_invitees(
+        &state,
+        &session_user.user_id,
+        view_id,
+        task_id,
+    ).await?;
+
+    Ok(HttpResponse::Ok().json(invites))
+}

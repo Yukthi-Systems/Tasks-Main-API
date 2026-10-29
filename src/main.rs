@@ -121,7 +121,7 @@ async fn main() -> std::io::Result<()> {
                 .service(event_invitees::create_invitee)
                 .service(event_invitees::resend_invite)
                 .service(event_invitees::delete_invite)
-            //     .service(event_invitees::list_invites)
+                .service(event_invitees::list_invites)
             )
             .service(
                 actix_scope("/comments")

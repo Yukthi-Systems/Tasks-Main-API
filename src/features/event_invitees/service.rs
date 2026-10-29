@@ -1,5 +1,6 @@
 use crate::features::task_events::get_task_ownership_info;
 use crate::errors::{ServiceResult, ServiceError};
+use super::model::PubEventInvitee;
 use crate::state::AppState;
 use super::repository;
 use uuid::Uuid;
@@ -97,6 +98,17 @@ pub async fn delete_invite(state: &AppState, session_user_id: &Uuid, view_id: i6
         return Err(ServiceError::Forbidden("You do not have permission to delete invite for this task".into()));
     }
 
+    // Fetch the invitee to ensure it exists before attempting deletion
+    let existing_invitee = repository::get_invitee(
+        &state.pg_pool,
+        &task_id,
+        invitee_email,
+    ).await?;
+
+    if existing_invitee.is_none() {
+        return Err(ServiceError::NotFound("Invitee not found".into()));
+    }
+
     // Delete the invite in the database
     let result = repository::delete_invitee(
         &state.pg_pool,
@@ -108,5 +120,22 @@ pub async fn delete_invite(state: &AppState, session_user_id: &Uuid, view_id: i6
         return Err(ServiceError::NotFound("Failed to delete invite for task".into()));
     }
 
+    // Send a notification to the invitee about the cancellation of the invite (e.g., via email)
+    // TODO: Make RMQ call to send a cancellation email to the invitee
+    // Use the existing_invitee information to personalize the cancellation email as needed
+
     Ok(())
+}
+
+
+/// List all invitees for a task
+pub async fn list_all_invitees(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64) -> ServiceResult<Vec<PubEventInvitee>> {
+    // Validate if the user has permission to view the invitees for the task
+    if !can_invite(state, session_user_id, view_id, task_id).await? {
+        return Err(ServiceError::Forbidden("You do not have permission to view invitees for this task".into()));
+    }
+
+    let result = repository::list_all_invitees(&state.pg_pool, &task_id).await?;
+
+    Ok(result)
 }
