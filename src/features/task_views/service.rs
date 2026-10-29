@@ -68,6 +68,18 @@ pub async fn update_task_view(state: &AppState, user_id: &Uuid, new_info: &Updat
 }
 
 
+/// Update an existing shared task view's information, self only possible (Only the shared with user can update their view info)
+pub async fn update_shared_task_view_info(state: &AppState, user_id: &Uuid, shared_view_id: i64, new_info: &serde_json::Value) -> ServiceResult<()> {
+    // Update the task view in the database
+    let result = repository::update_shared_task_view_info(&state.pg_pool, user_id, shared_view_id, new_info).await?;
+    if result == 0 {
+        return Err(ServiceError::NotFound("Task view not found or no changes made".into()));
+    }
+
+    Ok(())
+}
+
+
 /// Delete an existing task view, self only possible
 pub async fn delete_task_view(state: &AppState, user_id: &Uuid, view_id: i64) -> ServiceResult<()> {
     // Delete the task view in the database

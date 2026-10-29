@@ -1,4 +1,4 @@
-use routes::{health, auth, user, task_views, task_events, task_assignees, task_comments, task_alerts};
+use routes::{health, auth, user, task_views, task_events, task_assignees, task_comments, task_alerts, event_invites};
 use actix_web::web::scope as actix_scope;
 use actix_web::middleware::from_fn;
 use actix_web::{App, HttpServer};
@@ -45,6 +45,11 @@ async fn main() -> std::io::Result<()> {
                 .wrap(from_fn(middleware::key_based::auth_check))
                 .service(health::api_health_check)
             )
+            // .service(
+            //     actix_scope("/public")
+            //     .service(event_invites::update_response)
+            //     .service(event_invites::get_event_info)
+            // )
             .service(
                 actix_scope("/auth")
                 .service(auth::user_login)
@@ -76,6 +81,7 @@ async fn main() -> std::io::Result<()> {
             .service(
                 actix_scope("/shared")
                 .wrap(from_fn(middleware::user_session::auth_check))
+                .service(task_views::update_shared_task_view_info)
                 .service(task_views::create_shared_task_view)
                 .service(task_views::delete_shared_task_view)
                 .service(task_views::update_shared_task_view)
@@ -108,6 +114,14 @@ async fn main() -> std::io::Result<()> {
                 .service(task_alerts::delete_alert)
                 .service(task_alerts::update_alert)
                 .service(task_alerts::list_alerts)
+            )
+            .service(
+                actix_scope("/invites")
+                .wrap(from_fn(middleware::user_session::auth_check))
+                .service(event_invites::create_invite)
+            //     .service(event_invites::resend_invite)
+            //     .service(event_invites::delete_invite)
+            //     .service(event_invites::list_invites)
             )
             .service(
                 actix_scope("/comments")

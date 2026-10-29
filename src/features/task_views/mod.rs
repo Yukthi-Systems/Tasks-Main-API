@@ -10,6 +10,7 @@ pub use model::{TaskTag, TaskStatus};
 pub use service::{
     remove_user_from_shared_task_view,
     get_shared_task_view_user_info,
+    update_shared_task_view_info,
     get_task_view_permission,
     update_shared_task_view,
     list_all_shared_users,

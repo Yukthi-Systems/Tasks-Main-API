@@ -63,6 +63,20 @@ pub async fn update_task_view(session_user: web::ReqData<SessionUser>, data: web
 }
 
 
+#[patch("/update-shared/{shared_view_id}")]
+pub async fn update_shared_task_view_info(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, data: web::Json<serde_json::Value>, state: web::Data<AppState>) -> ApiResponse {
+    // Get SessionUser from request data
+    let session_user = session_user.into_inner();
+    let shared_view_id = path.into_inner();
+    let new_ui_info = data.into_inner();
+
+    // Update the shared task view's information for the user who has access to it (For self UI info JSON)
+    task_views::update_shared_task_view_info(&state, &session_user.user_id, shared_view_id, &new_ui_info).await?;
+
+    Ok(HttpResponse::Ok().body("Task view updated successfully"))
+}
+
+
 #[delete("/delete/{view_id}")]
 pub async fn delete_task_view(session_user: web::ReqData<SessionUser>, path: web::Path<i64>, state: web::Data<AppState>) -> ApiResponse {
     // Get SessionUser from request data

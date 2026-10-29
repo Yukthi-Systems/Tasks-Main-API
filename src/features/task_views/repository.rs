@@ -381,3 +381,26 @@ pub async fn get_one_shared_view_user_info(db_pool: &PgPool, view_id: i64, user_
 
     Ok(row.map(SharedTaskView::from))
 }
+
+
+pub async fn update_shared_task_view_info(db_pool: &PgPool, session_user_id: &Uuid, shared_view_id: i64, new_info: &serde_json::Value) -> PgResult<u64> {
+    let client = db_pool.get().await?;
+
+    let result = client
+        .execute(
+            r#"
+            UPDATE shared_views
+            SET ui_info = $3
+            WHERE view_id = $1
+                AND user_id = $2
+            "#,
+            &[
+                &shared_view_id,
+                session_user_id,
+                &new_info["ui_info"],
+            ],
+        )
+        .await?;
+
+    Ok(result)
+}
