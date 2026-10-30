@@ -2,6 +2,7 @@ use crate::features::task_events::{get_task_ownership_info, get_task_info};
 use crate::features::task_views::get_task_view_permission;
 use super::dto::{AddAssigneeDto, RemoveAssigneeDto};
 use crate::errors::{ServiceResult, ServiceError};
+use crate::cache::delete_redis_cache;
 use crate::state::AppState;
 use super::repository;
 use uuid::Uuid;
@@ -64,6 +65,10 @@ pub async fn assign_user(state: &AppState, org_id: &Uuid, session_user_id: &Uuid
         return Err(ServiceError::NotFound("Failed to assign user to task".into()));
     }
 
+    // Invalidate the cache for the task since its assignees have changed
+    let cache_key = format!("task:ownership:{}", assignee_info.task_id);
+    delete_redis_cache(&state.redis_cache, &cache_key).await?;
+
     Ok(())
 }
 
@@ -79,6 +84,10 @@ pub async fn remove_user(state: &AppState, session_user_id: &Uuid, assignee_info
     if result == 0 {
         return Err(ServiceError::NotFound("Failed to remove user from task".into()));
     }
+
+    // Invalidate the cache for the task since its assignees have changed
+    let cache_key = format!("task:ownership:{}", assignee_info.task_id);
+    delete_redis_cache(&state.redis_cache, &cache_key).await?;
 
     Ok(())
 }
