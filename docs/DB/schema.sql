@@ -238,3 +238,8 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE INDEX idx_tasks_title_trgm
 ON tasks USING GIN (title gin_trgm_ops);
+
+-- Index for unsent task alerts based on alert time
+CREATE INDEX idx_task_alerts_unsent_alert_at
+ON task_alerts (alert_at)
+WHERE notification_sent = false;
