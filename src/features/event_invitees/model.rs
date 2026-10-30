@@ -26,8 +26,8 @@ pub struct EventInvitee {
 
     pub validation_code: Uuid,
 
-    pub response_info: JsonValue,
     pub response_status: InviteResponseStatus,
+    pub response_info: JsonValue,
 
     pub invited_at: ChronoUtc,
 }
@@ -37,8 +37,8 @@ pub struct EventInvitee {
 pub struct PubEventInvitee {
     pub invitee_email: String,
 
-    pub response_info: JsonValue,
     pub response_status: InviteResponseStatus,
+    pub response_info: JsonValue,
 
     pub invited_at: ChronoUtc,
 }

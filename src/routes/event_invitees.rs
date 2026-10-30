@@ -103,7 +103,7 @@ pub async fn get_event_info(path: web::Path<uuid::Uuid>, query: web::Query<PubIn
     Ok(HttpResponse::Ok().json(
         serde_json::json!({
             "event_info": event_info,
-            "task_info": task_info,
+            "task_info": task_info
         })
     ))
 }
