@@ -31,7 +31,7 @@ async fn validate_user_assignment(state: &AppState, session_user_id: &Uuid, view
 
     // See if the session user is the owner of the task or an assignee
     if !task_ownership_info.can_create(&task_view_permission.owner_id) {
-        return Err(ServiceError::Forbidden("You do not have permission to assign a user to this task".into()));
+        return Err(ServiceError::Forbidden("You do not have create permission for this task".into()));
     }
 
     let can_access_child_task = if task_info.parent_task_id.is_some() {
