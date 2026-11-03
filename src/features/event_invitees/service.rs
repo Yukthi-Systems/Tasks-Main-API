@@ -117,11 +117,18 @@ pub async fn create_invite(state: &AppState, session_user: &SessionUser, view_id
 
 
 /// Resend an invite for a task
-pub async fn resend_invite(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, invitee_email: &str) -> ServiceResult<()> {
+pub async fn resend_invite(state: &AppState, session_user: &SessionUser, view_id: i64, task_id: i64, invitee_email: &str) -> ServiceResult<()> {
     // Validate if the user has permission to invite for the task
-    if !can_invite(state, session_user_id, view_id, task_id).await? {
+    if !can_invite(state, &session_user.user_id, view_id, task_id).await? {
         return Err(ServiceError::Forbidden("You do not have permission to invite for this task".into()));
     }
+
+    // Fetch the task information associated with the task ID
+    let task_info = get_task_info(&state.pg_pool, task_id).await?;
+    if task_info.is_none() {
+        return Err(ServiceError::NotFound("Task not found".into()));
+    }
+    let task_info = task_info.unwrap();
 
     // Resend the invite in the database
     let result = repository::get_invitee(
@@ -134,9 +141,30 @@ pub async fn resend_invite(state: &AppState, session_user_id: &Uuid, view_id: i6
     if result.is_none() {
         return Err(ServiceError::NotFound("Invitee not found".into()));
     }
+    let result = result.unwrap();
 
-    // Resend the invite notification to the invitee (e.g., via email)
-    // TODO: Make RMQ call to send an invite email to the invitee
+    // Resend the invite notification to the invitee (via email)
+    rabbitmq::send_notification_to_rmq(
+        "invite",
+        &serde_json::json!({
+            "to": invitee_email,
+            "template": "resend_event_invite",
+            "variables": {
+                "validation_code": &result.validation_code,
+                "response_status": &result.response_status,
+                "response_info": &result.response_info,
+                "invited_at": &result.invited_at,
+                "session_user_email": &session_user.email,
+                "session_user_first_name": &session_user.first_name,
+                "session_user_last_name": &session_user.last_name,
+                "organization_id": &session_user.organization_id,
+                "organization_name": &session_user.organization_name,
+                "invitee_email": invitee_email,
+                "task_info": task_info,
+                "timestamp": chrono::Utc::now()
+            }
+        })
+    ).await?;
 
     Ok(())
 }

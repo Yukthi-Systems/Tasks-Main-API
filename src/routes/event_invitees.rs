@@ -37,7 +37,7 @@ pub async fn resend_invite(session_user: web::ReqData<SessionUser>, path: web::P
     // Any user associated with the task can invite another user
     event_invitees::resend_invite(
         &state,
-        &session_user.user_id,
+        &session_user,
         view_id,
         task_id,
         &invitee_email,
