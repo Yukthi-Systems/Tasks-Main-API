@@ -28,6 +28,7 @@ pub enum TaskTag {
     Urgent,     // Requires prompt attention
     Optional,   // Can be skipped
     Personal,   // Personal tasks
+    Event,      // Event-related tasks (Special)
     Other,      // Anything else
 }
 

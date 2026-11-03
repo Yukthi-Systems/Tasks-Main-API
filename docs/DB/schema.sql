@@ -49,6 +49,7 @@ CREATE TYPE task_tag AS ENUM (
     'URGENT',       -- Requires prompt attention
     'OPTIONAL',     -- Can be skipped
     'PERSONAL',     -- Personal tasks
+    'EVENT',        -- Event-related tasks (Special)
     'OTHER'         -- Anything else
 );
 
