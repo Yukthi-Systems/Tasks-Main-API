@@ -120,6 +120,9 @@ pub async fn refresh_session(request: HttpRequest, user_tokens: web::Json<Sessio
     let sso_session_id_cookie: String = sso_session_id_cookie.unwrap();
     let user_tokens = user_tokens.into_inner();
 
+    // Delete the session from DB and any associated cache
+    delete_user_session(&state, &user_tokens.refresh_token, user_tokens.access_token.to_string()).await?;
+
     // Generate new access token for the session
     let access_token = uuid::Uuid::new_v4();
 
@@ -130,9 +133,6 @@ pub async fn refresh_session(request: HttpRequest, user_tokens: web::Json<Sessio
         user_tokens.refresh_token,
         access_token
     ).await?;
-
-    // Delete the session from DB and any associated cache
-    delete_user_session(&state, &user_tokens.refresh_token, user_tokens.access_token.to_string()).await?;
 
     // Return a X-Sesson-Refresh-ID along with X-Sesson-Access-ID
     Ok(HttpResponse::Ok()
