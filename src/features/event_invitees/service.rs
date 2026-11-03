@@ -94,7 +94,7 @@ pub async fn create_invite(state: &AppState, session_user: &SessionUser, view_id
 
     // Send an invite notification to the invitee (via email)
     rabbitmq::send_notification_to_rmq(
-        "invite",
+        "email",
         &serde_json::json!({
             "to": invitee_email,
             "template": "initial_event_invite",
@@ -145,7 +145,7 @@ pub async fn resend_invite(state: &AppState, session_user: &SessionUser, view_id
 
     // Resend the invite notification to the invitee (via email)
     rabbitmq::send_notification_to_rmq(
-        "invite",
+        "email",
         &serde_json::json!({
             "to": invitee_email,
             "template": "resend_event_invite",
