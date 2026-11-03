@@ -1,7 +1,9 @@
-use crate::features::task_events::get_task_ownership_info;
+use crate::features::task_events::{get_task_ownership_info, get_task_info};
 use super::model::{PubEventInvitee, EventInvitee};
 use crate::errors::{ServiceResult, ServiceError};
+use crate::features::users::SessionUser;
 use super::dto::PubInviteResponseDto;
+use crate::messaging::rabbitmq;
 use crate::state::AppState;
 use super::repository;
 use uuid::Uuid;
@@ -62,12 +64,20 @@ pub async fn get_public_invitee_info(state: &AppState, task_id: &i64, invitee_em
 
 
 /// Create an invite for a task
-pub async fn create_invite(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, invitee_email: &str) -> ServiceResult<()> {
+pub async fn create_invite(state: &AppState, session_user: &SessionUser, view_id: i64, task_id: i64, invitee_email: &str) -> ServiceResult<()> {
     // Validate if the user has permission to invite for the task
-    if !can_invite(state, session_user_id, view_id, task_id).await? {
+    if !can_invite(state, &session_user.user_id, view_id, task_id).await? {
         return Err(ServiceError::Forbidden("You do not have permission to invite for this task".into()));
     }
 
+    // Fetch the task information associated with the task ID
+    let task_info = get_task_info(&state.pg_pool, task_id).await?;
+    if task_info.is_none() {
+        return Err(ServiceError::NotFound("Task not found".into()));
+    }
+    let task_info = task_info.unwrap();
+
+    // Generate a random validation code for the invitee
     let random_validation_code = Uuid::new_v4();
 
     // Create the invite in the database
@@ -82,8 +92,25 @@ pub async fn create_invite(state: &AppState, session_user_id: &Uuid, view_id: i6
         return Err(ServiceError::NotFound("Failed to create invite for task".into()));
     }
 
-    // Send an invite notification to the invitee (e.g., via email)
-    // TODO: Make RMQ call to send an invite email to the invitee
+    // Send an invite notification to the invitee (via email)
+    rabbitmq::send_notification_to_rmq(
+        "invite",
+        &serde_json::json!({
+            "to": invitee_email,
+            "template": "initial_event_invite",
+            "variables": {
+                "session_user_email": &session_user.email,
+                "session_user_first_name": &session_user.first_name,
+                "session_user_last_name": &session_user.last_name,
+                "organization_id": &session_user.organization_id,
+                "organization_name": &session_user.organization_name,
+                "validation_code": random_validation_code,
+                "invitee_email": invitee_email,
+                "task_info": task_info,
+                "timestamp": chrono::Utc::now()
+            }
+        })
+    ).await?;
 
     Ok(())
 }

@@ -17,7 +17,7 @@ pub async fn create_invitee(session_user: web::ReqData<SessionUser>, path: web::
     // Any user associated with the task can invite another user
     event_invitees::create_invite(
         &state,
-        &session_user.user_id,
+        &session_user,
         view_id,
         task_id,
         &invitee_email

@@ -5,7 +5,7 @@ use crate::errors::{ServiceResult, ServiceError};
 /// Function to send notification to RabbitMQ using HTTP API
 pub async fn send_notification_to_rmq<T>(notification_type: &str, payload: &T) -> ServiceResult<()>
     where
-        T: serde::Serialize,
+        T: serde::Serialize
 {
     let client = reqwest::Client::new();
 
