@@ -37,7 +37,7 @@ pub struct RmqSettings {
     pub auth_token: String, // Base64 encoded string of "username:password"
     pub virtual_host: String,
     pub exchange_name: String,
-    pub routing_key: String,
+    pub notify_queue_name: String,
 }
 
 
@@ -171,7 +171,7 @@ impl RmqSettings {
         let password = env_var("RABBITMQ_PASSWORD").expect("RABBITMQ_PASSWORD must be set");
         let virtual_host = env_var("RABBITMQ_VIRTUAL_HOST").expect("RABBITMQ_VIRTUAL_HOST must be set");
         let exchange_name = env_var("RABBITMQ_EXCHANGE_NAME").expect("RABBITMQ_EXCHANGE_NAME must be set");
-        let routing_key = env_var("RABBITMQ_ROUTING_KEY").expect("RABBITMQ_ROUTING_KEY must be set");
+        let notify_queue_name = env_var("RABBITMQ_NOTIFY_QUEUE_NAME").expect("RABBITMQ_NOTIFY_QUEUE_NAME must be set");
 
         let auth_token = BASE64_STANDARD.encode(format!("{}:{}", user_name, password));
 
@@ -180,7 +180,7 @@ impl RmqSettings {
             auth_token,
             virtual_host,
             exchange_name,
-            routing_key,
+            notify_queue_name,
         }
     }
 }
