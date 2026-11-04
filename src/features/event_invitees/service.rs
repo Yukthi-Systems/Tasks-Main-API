@@ -171,9 +171,9 @@ pub async fn resend_invite(state: &AppState, session_user: &SessionUser, view_id
 
 
 /// Delete an invite for a task
-pub async fn delete_invite(state: &AppState, session_user_id: &Uuid, view_id: i64, task_id: i64, invitee_email: &str) -> ServiceResult<()> {
+pub async fn delete_invite(state: &AppState, session_user: &SessionUser, view_id: i64, task_id: i64, invitee_email: &str) -> ServiceResult<()> {
     // Validate if the user has permission to invite for the task
-    if !can_delete_invite(state, session_user_id, view_id, task_id).await? {
+    if !can_delete_invite(state, &session_user.user_id, view_id, task_id).await? {
         return Err(ServiceError::Forbidden("You do not have permission to delete invite for this task".into()));
     }
 
@@ -188,6 +188,13 @@ pub async fn delete_invite(state: &AppState, session_user_id: &Uuid, view_id: i6
         return Err(ServiceError::NotFound("Invitee not found".into()));
     }
 
+    // Fetch the task information associated with the invitee for notification purposes
+    let task_info = get_task_info(&state.pg_pool, task_id).await?;
+    if task_info.is_none() {
+        return Err(ServiceError::NotFound("Task not found".into()));
+    }
+    let task_info = task_info.unwrap();
+
     // Delete the invite in the database
     let result = repository::delete_invitee(
         &state.pg_pool,
@@ -199,9 +206,25 @@ pub async fn delete_invite(state: &AppState, session_user_id: &Uuid, view_id: i6
         return Err(ServiceError::NotFound("Failed to delete invite for task".into()));
     }
 
-    // Send a notification to the invitee about the cancellation of the invite (e.g., via email)
-    // TODO: Make RMQ call to send a cancellation email to the invitee
-    // Use the existing_invitee information to personalize the cancellation email as needed
+    // Send a notification to the invitee about the cancellation of the invite (via email)
+    // Uses the existing_invitee information to personalize the cancellation email as needed
+    rabbitmq::send_notification_to_rmq(
+        "email",
+        &serde_json::json!({
+            "to": invitee_email,
+            "template": "cancel_event_invite",
+            "variables": {
+                "task_info": task_info,
+                "existing_invitee": existing_invitee,
+                "session_user_email": &session_user.email,
+                "session_user_first_name": &session_user.first_name,
+                "session_user_last_name": &session_user.last_name,
+                "organization_id": &session_user.organization_id,
+                "organization_name": &session_user.organization_name,
+                "timestamp": chrono::Utc::now()
+            }
+        })
+    ).await?;
 
     Ok(())
 }
