@@ -18,11 +18,15 @@ async fn fetch_sso_info(sso_cookie_token: &str) -> ServiceResult<SingleSignOnInf
         .header("accept", "application/json")
         .header("X-API-Key", &API_SETTINGS.sso_api_key)
         .send()
-        .await?
-        .json::<SingleSignOnInfoDTO>()
         .await?;
 
-    Ok(resp)
+    // If the response status is not successful, return an error
+    if !resp.status().is_success() {
+        tracing::error!("Failed to fetch SSO info: {} - {}", resp.status(), resp.text().await.unwrap_or_default());
+        return Err(ServiceError::Unauthorized("Failed to fetch SSO info".into()));
+    }
+
+    Ok(resp.json::<SingleSignOnInfoDTO>().await?)
 }
 
 
