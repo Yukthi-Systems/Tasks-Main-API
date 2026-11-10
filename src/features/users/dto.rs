@@ -8,6 +8,7 @@ type ChronoUtc = chrono::DateTime<chrono::Utc>;
 
 #[derive(Deserialize)]
 pub struct SingleSignOnInfoDTO {
+    pub identity_id: Uuid,
     pub email: String,
     pub domain_name: String,
 

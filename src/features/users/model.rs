@@ -30,9 +30,6 @@ pub struct SessionUser {
 
 impl SessionUser {
     pub fn new(sso_info: SingleSignOnInfoDTO, refresh_token: Uuid, sso_token: String) -> Self {
-        // TODO: Make sure the user id is from SSO and not generated locally (currently its fake)
-        let generated_user_id = Uuid::new_v5(&Uuid::NAMESPACE_OID, sso_info.email.as_bytes());
-
         SessionUser {
             refresh_token,
             sso_token,
@@ -41,7 +38,7 @@ impl SessionUser {
             organization_id: sso_info.organization_id,
             organization_name: sso_info.organization_name,
 
-            user_id: generated_user_id,
+            user_id: sso_info.identity_id,
             email: sso_info.email,
             domain_name: sso_info.domain_name,
 
