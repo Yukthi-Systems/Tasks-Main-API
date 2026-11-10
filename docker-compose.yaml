@@ -45,7 +45,6 @@ services:
 
       # Self API Configuration
       - ALLOWED_ORIGINS=<ALLOWED_ORIGINS_LIST>
-      - SELF_API_KEY=<SELF_API_KEY>
 
       # SSO API Configuration
       - SSO_API_URL=<SSO_API_URL>

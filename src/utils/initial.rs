@@ -43,7 +43,6 @@ pub struct RmqSettings {
 
 pub struct ApiSettings {
     pub allowed_origins: Vec<String>,
-    pub self_api_key: String,
     pub sso_api_url: String,
     pub sso_api_key: String,
 }
@@ -200,15 +199,12 @@ impl ApiSettings {
             .filter(|items| !items.is_empty())
             .expect("ALLOWED_ORIGINS must be set as a comma-separated list of allowed origins or '*' for allowing all origins");
 
-        let self_api_key = env_var("SELF_API_KEY").expect("SELF_API_KEY must be set");
-
         // SSO API details
         let sso_api_url = env_var("SSO_API_URL").expect("SSO_API_URL must be set");
         let sso_api_key = env_var("SSO_API_KEY").expect("SSO_API_KEY must be set");
 
         ApiSettings {
             allowed_origins,
-            self_api_key,
             sso_api_url,
             sso_api_key
         }
