@@ -18,15 +18,8 @@ pub struct PgSettings {
 }
 
 
-pub struct MokaSettings {
-    pub cache_size: u64,
-    pub expiration_time: Duration,
-}
-
-
 pub struct AppSettings {
     pub pg_settings: PgSettings,
-    pub cache_settings: MokaSettings,
     pub redis_url: String,
 }
 
@@ -131,32 +124,12 @@ impl PgSettings {
 }
 
 
-impl MokaSettings {
-    fn from_env() -> Self {
-        let cache_size = env_var("CACHE_SIZE")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .expect("CACHE_SIZE must be a positive integer of type u64");
-        let expiration_time = env_var("CACHE_EXPIRATION_TIME")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .expect("CACHE_EXPIRATION_TIME must be a positive integer of type u64");
-
-        MokaSettings {
-            cache_size,
-            expiration_time: Duration::from_secs(expiration_time),
-        }
-    }
-}
-
-
 impl AppSettings {
     pub fn from_env() -> Self {
         let redis_url = env_var("REDIS_URL").expect("REDIS_URL must be set");
 
         AppSettings {
             pg_settings: PgSettings::from_env(),
-            cache_settings: MokaSettings::from_env(),
             redis_url,
         }
     }
